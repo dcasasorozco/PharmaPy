@@ -46,6 +46,7 @@ def cryst_mechanism(sup_sat, moms, temp, temp_ref, params, reformulate, kv,
 
     return kinetic_term
 
+
 def disect_rxns(rxns, sep='-->'):
 
     out = {}
@@ -73,16 +74,14 @@ def disect_rxns(rxns, sep='-->'):
     return out, species
 
 
-def get_coeff(pattern, expr):
-    text = re.match(pattern, expr)
-
-    if text is None:
+def get_coeff(match):
+    if not match:
         coeff = 1
-    elif '/' in text.group():
-        num, denom = text.group().split('/')
+    elif '/' in match:
+        num, denom = match.split('/')
         coeff = int(num) / int(denom)
     else:
-        coeff = float(text.group())
+        coeff = float(match)
 
     return coeff
 
@@ -92,32 +91,26 @@ def get_stoich(di_rxn, partic_species):
     num_rxns = len(di_rxn)
     num_species = len(partic_species)
 
-    # TODO: read json keys (name species) and make
-
     stoich = np.zeros((num_rxns, num_species))
 
-    # I think this is the right regex pattern...
-    regex_coeff = r'\d+(\.\d+)?(/\d+)?'
-    regex_sub = r'^\d+(\.d+)?(/\d+)?\s?'
+    regex = r'(\d+\.*/*\d*)*(.+)'
 
     for num, di in di_rxn.items():
         for r in di['reactants']:
-            coeff = get_coeff(regex_coeff, r)
-
-            r = re.sub(regex_sub, '', r)
+            coeff, r = re.findall(regex, r)[0]
+            coeff = -get_coeff(coeff)
 
             col = partic_species.index(r)
 
-            stoich[num, col] = -coeff
+            stoich[num, col] += coeff
 
         for p in di['products']:
-            coeff = get_coeff(regex_coeff, p)
-
-            p = re.sub(regex_sub, '', p)
+            coeff, p = re.findall(regex, p)[0]
+            coeff = get_coeff(coeff)
 
             col = partic_species.index(p)
 
-            stoich[num, col] = coeff
+            stoich[num, col] += coeff
 
     return stoich
 
@@ -125,9 +118,9 @@ def get_stoich(di_rxn, partic_species):
 class RxnKinetics:
     """
     Create a reaction kinetics object. Reaction rate r\ :sub:`i` is assumed to
-    have the following functional form: 
-        r\ :sub:`i` = f\ :sub:`1` (T) * f\ :sub:`2` ( C\ :sub:`1`, ..., C\ :sub:`n_comp`) 
-        
+    have the following functional form:
+        r\ :sub:`i` = f\ :sub:`1` (T) * f\ :sub:`2` ( C\ :sub:`1`, ..., C\ :sub:`n_comp`)
+
     with the temperature-dependent term f\ :sub:`1` given by:
         f\ :sub:`1` = k\ :sub:`i` * exp(- Ea\ :sub:`i`/R/T)
 
@@ -159,7 +152,7 @@ class RxnKinetics:
             '2 H\ :sub:`2` O --> 2 H\ :sub:`2` + O\ :sub:`2`',
             'H\ :sub:`2` O --> H\ :sub:`2` + 0.5 O\ :sub:`2`,
             'H\ :sub:`2` O --> H\ :sub:`2` + 0.5 O\ :sub:`2`'
-         
+
 
         Note that integer, float and fractional stoichiometric coefficients
         are supported.
@@ -204,7 +197,7 @@ class RxnKinetics:
     tref_hrxn : float, optional
         DESCRIPTION. The default is 298.15.
 
-    kinetic_model : callable, optional  
+    kinetic_model : callable, optional
         kinetic model to be used to compute f\ :sub:`2`. It must have
         the signature:
 
@@ -811,7 +804,7 @@ class CrystKinetics:
             else:
                 temp = temp[..., np.newaxis]
                 c_satur = (temp**int_coeff * self.coeff_solub).sum(axis=1)
-                
+
         elif self.solub_type == 'apelblat':
             a1, a2, a3 = self.coeff_solub
             c_satur = np.exp(a1 + a2/temp + a3*np.log(temp))
