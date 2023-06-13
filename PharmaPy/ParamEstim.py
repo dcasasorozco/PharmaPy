@@ -309,6 +309,8 @@ class ParameterEstimation:
 
         if isinstance(x_data, dict):
             self.experim_names = list(x_data.keys())
+        elif isinstance(y_data, dict):
+            self.experim_names = list(y_data.keys())
 
         x_data = convert_types(x_data)
         y_data = convert_types(y_data, two_d=True)
