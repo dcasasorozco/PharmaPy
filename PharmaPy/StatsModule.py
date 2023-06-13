@@ -398,11 +398,8 @@ class StatisticsClass:
 
         return y_boot
 
-    def bootstrap_params(self, num_samples=100):
+    def bootstrap_params(self, num_samples=100, parallelize=False):
         y_samples = self.get_bootsamples(num_samples)
-
-        # Run parameter estimation
-        boot_params = np.zeros((num_samples, self.inst.num_params))
 
         def call_opt(index):
             inst = copy.deepcopy(self.inst)
@@ -421,24 +418,31 @@ class StatisticsClass:
 
 
         tic = time.time()
-        for ind in range(num_samples):
 
-            params = call_opt(ind)
-            # # Update bootstraped data for all the experimental runs
-            # self.inst.y_data = [y[ind] for y in y_samples]
+        if parallelize:
+            if spec:
+                pool = 6
+            else:
+                message = 'Multiprocessing library not found. Evaluating ' \
+                          'bootstrapping sequentially'
+                print('-' * len(message))
+                print(message)
+                print('-' * len(message))
 
-            # # Optimize
-            # try:
-            #     params, hess_inv, info = self.inst.optimize_fn(
-            #         method=self.inst.opt_method,
-            #         verbose=False, store_iter=False,
-            #         optim_options=self.inst.optim_options)
-            # except:
-            #     print('Optimization failed.')
-            #     params = [np.nan] * self.inst.num_params
+                boot_params = np.zeros((num_samples, self.inst.num_params))
 
-            # Store
-            boot_params[ind] = params
+                for ind in range(num_samples):
+                    params = call_opt(ind)
+                    boot_params[ind] = params
+
+        else:
+
+            boot_params = np.zeros((num_samples, self.inst.num_params))
+
+            for ind in range(num_samples):
+                params = call_opt(ind)
+                boot_params[ind] = params
+
 
         toc = time.time()
 
