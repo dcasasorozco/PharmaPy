@@ -14,6 +14,11 @@ import pandas as pd
 from itertools import combinations
 import time
 
+import importlib
+import copy
+
+spec = importlib.util.find_spec('pathos')
+
 
 class ParallelProblem:
     def __init__(self, instance):
@@ -399,20 +404,38 @@ class StatisticsClass:
         # Run parameter estimation
         boot_params = np.zeros((num_samples, self.inst.num_params))
 
-        tic = time.time()
-        for ind in range(num_samples):
-            # Update bootstraped data for all the experimental runs
-            self.inst.y_data = [y[ind] for y in y_samples]
+        def call_opt(index):
+            inst = copy.deepcopy(self.inst)
+            inst.y_data = [y[ind] for y in y_samples]
 
-            # Optimize
             try:
-                params, hess_inv, info = self.inst.optimize_fn(
-                    method=self.inst.opt_method,
+                params, hess_inv, info = inst.optimize_fn(
+                    method=inst.opt_method,
                     verbose=False, store_iter=False,
-                    optim_options=self.inst.optim_options)
+                    optim_options=inst.optim_options)
             except:
                 print('Optimization failed.')
-                params = [np.nan] * self.inst.num_params
+                params = [np.nan] * inst.num_params
+
+            return params
+
+
+        tic = time.time()
+        for ind in range(num_samples):
+
+            params = call_opt(ind)
+            # # Update bootstraped data for all the experimental runs
+            # self.inst.y_data = [y[ind] for y in y_samples]
+
+            # # Optimize
+            # try:
+            #     params, hess_inv, info = self.inst.optimize_fn(
+            #         method=self.inst.opt_method,
+            #         verbose=False, store_iter=False,
+            #         optim_options=self.inst.optim_options)
+            # except:
+            #     print('Optimization failed.')
+            #     params = [np.nan] * self.inst.num_params
 
             # Store
             boot_params[ind] = params
