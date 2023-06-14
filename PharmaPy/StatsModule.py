@@ -19,21 +19,8 @@ import copy
 
 spec = importlib.util.find_spec('pathos')
 
-
-class ParallelProblem:
-    def __init__(self, instance):
-        self.instance = instance
-
-    def run_fit(self, sample):
-        self.instance.y_fit = sample
-
-        # Optimize
-        params, _, _ = self.instance.optimize_fn(
-            method=self.instance.opt_method,
-            verbose=False, store_iter=False,
-            optim_options=self.instance.optim_options)
-
-        return params
+if spec:
+    from pathos import multiprocessing as mp
 
 
 class StatisticsClass:
@@ -371,7 +358,6 @@ class StatisticsClass:
 
         """
         # Remember that multiple datasets are allowed
-
         y_boot = []
         for ind in range(self.inst.num_datasets):  # datasets
             residual = self.residuals[ind].T
@@ -398,30 +384,69 @@ class StatisticsClass:
 
         return y_boot
 
+    def call_optimizer(self, index, y_samples):
+        inst = copy.deepcopy(self.inst)
+
+        # Replace data for each experiment.
+        inst.y_data = [y[index] for y in y_samples]
+
+        try:
+            params, hess_inv, info = inst.optimize_fn(
+                method=inst.opt_method,
+                verbose=False, store_iter=False,
+                optim_options=inst.optim_options)
+        except:
+            print('Optimization failed.')
+            params = [np.nan] * inst.num_params
+
+        return params
+
     def bootstrap_params(self, num_samples=100, parallelize=False):
+        """
+        Get confidence regions of the nominal converged parameters by
+        bootstrapping.
+
+        When using this method, make sure the script from which it is called is
+        protected with the idiom "if __name__ == '__name__'"
+        to prevent pathos from failing
+
+        Parameters
+        ----------
+        num_samples : int, optional
+            number of datasets to be created by bootstrapping the converged
+            residuals. The default is 100.
+        parallelize : bool, optional
+            if True, optimization of the bootstrapped datasets will be
+            performed in parallel using pathos.multiprocessing. Otherwise,
+            the optimizations will be performed sequentially.
+            If the pathos library is not found, computations will be performed
+            in series. The default is False.
+
+        Returns
+        -------
+        boot_params : list of arrays
+            parameter estimates found by optimizing bootstrapped synthetic
+            datasets
+
+        """
+        # y_samples is a list with as many items as number of experiments.
+        # Each experiment contains a list numpy arrays corresponding to samples
         y_samples = self.get_bootsamples(num_samples)
-
-        def call_opt(index):
-            inst = copy.deepcopy(self.inst)
-            inst.y_data = [y[ind] for y in y_samples]
-
-            try:
-                params, hess_inv, info = inst.optimize_fn(
-                    method=inst.opt_method,
-                    verbose=False, store_iter=False,
-                    optim_options=inst.optim_options)
-            except:
-                print('Optimization failed.')
-                params = [np.nan] * inst.num_params
-
-            return params
-
 
         tic = time.time()
 
         if parallelize:
             if spec:
-                pool = 6
+                ncpus = mp.cpu_count()
+                num_process = min(ncpus - 1, num_samples)
+
+                pool = mp.ProcessingPool(num_process)
+
+                myfun = lambda idx: self.call_optimizer(idx, y_samples)
+                boot_params = pool.map(myfun, range(num_samples))
+
+                pool.close()
+
             else:
                 message = 'Multiprocessing library not found. Evaluating ' \
                           'bootstrapping sequentially'
@@ -432,7 +457,7 @@ class StatisticsClass:
                 boot_params = np.zeros((num_samples, self.inst.num_params))
 
                 for ind in range(num_samples):
-                    params = call_opt(ind)
+                    params = self.call_optimizer(ind, y_samples)
                     boot_params[ind] = params
 
         else:
@@ -440,9 +465,9 @@ class StatisticsClass:
             boot_params = np.zeros((num_samples, self.inst.num_params))
 
             for ind in range(num_samples):
-                params = call_opt(ind)
+                params = self.call_optimizer(ind, y_samples)
+                # params = caller.call_optimizer(ind)
                 boot_params[ind] = params
-
 
         toc = time.time()
 
