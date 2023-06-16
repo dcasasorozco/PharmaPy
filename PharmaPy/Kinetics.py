@@ -213,11 +213,11 @@ class RxnKinetics:
     RxnKinetics object.
 
     """
-    def __init__(self, path, k_params, ea_params, rxn_list=None,
+    def __init__(self, path, k_params, ea_params=None, rxn_list=None,
                  stoich_matrix=None, partic_species=None,
                  temp_ref=None, reformulate_kin=False,
                  keq_params=None, params_f=None, delta_hrxn=0,
-                 tref_hrxn=298.15, kinetic_model=None, df_dstates=None,
+                 tref_hrxn=298.15, custom_model=None, df_dstates=None,
                  df_dtheta=None):
 
 
@@ -251,16 +251,18 @@ class RxnKinetics:
 
         # ---------- Kinetic model
         self.elem_flag = False
-        if kinetic_model is None:
+        if custom_model is None:
             self.kinetic_model = self.elem_f_model
             self.df_dstates = self.elem_df_dstates
             self.df_dthetaf = self.elem_df_dtheta
 
             self.elem_flag = True
-        else:
-            self.kinetic_model = kinetic_model
-            self.df_dstates = df_dstates
-            self.df_dthetaf = df_dtheta
+        # else:
+        #     self.kinetic_model = kinetic_model
+        #     self.df_dstates = df_dstates
+        #     self.df_dthetaf = df_dtheta
+
+        self.custom_model = custom_model
 
         # Normalize stoichiometric coefficients
         first_negative = (stoich_matrix < 0).argmax(axis=1)
@@ -316,10 +318,17 @@ class RxnKinetics:
         return phi_1, phi_2
 
     def set_params(self, params):  # From 1D params to matrix-shaped params
-
         if isinstance(params, dict):
             k_params = np.atleast_1d(params['k_params']) + eps
-            ea_params = np.atleast_1d(params['ea_params']) + eps
+
+            ea_params = params['ea_params']
+
+            if ea_params is None:
+                ea_params = np.zeros_like(k_params)
+            else:
+                ea_params = np.atleast_1d(ea_params)
+
+            ea_params += eps
 
             self.phi_1, self.phi_2 = self.transform_params(k_params, ea_params)
 
@@ -591,13 +600,17 @@ class RxnKinetics:
         else:
             temp_terms = self.temp_term(temp)
 
-            if self.keq_params is None:
-                f_terms = self.kinetic_model(conc, self.params_f,
-                                             *self.args_kin)
+            if self.custom_model:
+                rxn_rates = self.custom_model(conc, temp, params)
+            elif self.keq_params is None:
+                f_terms = self.elem_f_model(conc, self.params_f,
+                                            *self.args_kin)
             else:
                 f_terms = self.equilibrium_model(conc, temp, delta_hrxn)
 
-            rxn_rates = temp_terms * f_terms
+            if 'f_terms' in locals():
+                rxn_rates = temp_terms * f_terms
+
             if overall_rates:  # per species
                 total_rates = np.dot(rxn_rates, self.normalized_stoich.T)
                 return total_rates
