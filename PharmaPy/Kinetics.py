@@ -197,11 +197,10 @@ class RxnKinetics:
     tref_hrxn : float, optional
         DESCRIPTION. The default is 298.15.
 
-    kinetic_model : callable, optional
-        kinetic model to be used to compute f\ :sub:`2`. It must have
-        the signature:
+    custom_model : callable, optional
+        user-defined kinetic model. It must have the signature:
 
-            >>> kin_model(conc, params, *args). The default is None.
+            >>> custom_model(conc, temp, params). The default is None.
 
     df_dstates : TYPE, optional
         DESCRIPTION. The default is None.
@@ -213,13 +212,13 @@ class RxnKinetics:
     RxnKinetics object.
 
     """
+
     def __init__(self, path, k_params, ea_params=None, rxn_list=None,
                  stoich_matrix=None, partic_species=None,
                  temp_ref=None, reformulate_kin=False,
                  keq_params=None, params_f=None, delta_hrxn=0,
                  tref_hrxn=298.15, custom_model=None, df_dstates=None,
                  df_dtheta=None):
-
 
         with open(path) as f:
             db = json.load(f)
@@ -251,16 +250,16 @@ class RxnKinetics:
 
         # ---------- Kinetic model
         self.elem_flag = False
+
         if custom_model is None:
             self.kinetic_model = self.elem_f_model
             self.df_dstates = self.elem_df_dstates
             self.df_dthetaf = self.elem_df_dtheta
 
             self.elem_flag = True
-        # else:
-        #     self.kinetic_model = kinetic_model
-        #     self.df_dstates = df_dstates
-        #     self.df_dthetaf = df_dtheta
+        else:
+            self.df_dstates = df_dstates
+            self.df_dthetaf = df_dtheta
 
         self.custom_model = custom_model
 
@@ -275,10 +274,14 @@ class RxnKinetics:
         self.stoich_matrix = stoich_matrix
 
         # ---------- Parameters
-        params_dict = {'k_params': k_params, 'ea_params': ea_params,
-                       'keq_params': keq_params, 'params_f': params_f}
+        self.custom_params = None
+        if custom_model:
+            self.custom_params = np.asarray(k_params)
+        else:
+            params_dict = {'k_params': k_params, 'ea_params': ea_params,
+                           'keq_params': keq_params, 'params_f': params_f}
+            self.set_params(params_dict)
 
-        self.set_params(params_dict)
         self.nomenclature(stoich_matrix, k_params)
 
         # Equilibrium kinetics
@@ -376,46 +379,40 @@ class RxnKinetics:
 
     def nomenclature(self, stoich_matrix, kvals):
 
-        # Names
-        num_kpar = len(self.phi_1)
+        if self.custom_model:
+            num_params = len(self.custom_params)
+            self.name_params = ['theta_%i' % ind
+                                for ind in range(1, num_params + 1)]
+            self.num_params = num_params
+            self.params = dict(zip(self.name_params, self.custom_params))
 
-        if self.reformulate_kin:
-            name_k = ['\\varphi_{1, %i}' % ind for ind in range(1, num_kpar + 1)]
-            name_e = ['\\varphi_{2, %i}' % ind for ind in range(1, num_kpar + 1)]
         else:
-            name_k = ['k_%i' % ind for ind in range(1, num_kpar + 1)]
-            name_e = ['E_{a, %i}' % ind for ind in range(1, num_kpar + 1)]
+            # Names
+            num_kpar = len(self.phi_1)
 
-        if self.fit_paramsf:
-            num_orders = (stoich_matrix < 0).sum()
-            name_orders = [r'\alpha_{}'.format(ind)
-                           for ind in range(1, num_orders + 1)]
-        else:
-            name_orders = []
+            if self.reformulate_kin:
+                name_k = ['\\varphi_{1, %i}' % ind
+                          for ind in range(1, num_kpar + 1)]
+                name_e = ['\\varphi_{2, %i}' % ind
+                          for ind in range(1, num_kpar + 1)]
+            else:
+                name_k = ['k_%i' % ind for ind in range(1, num_kpar + 1)]
+                name_e = ['E_{a, %i}' % ind for ind in range(1, num_kpar + 1)]
 
-        self.name_params = name_k + name_e + name_orders
-        self.num_params = len(self.name_params)
-        self.params = dict(zip(self.name_params, (self.phi_1, self.phi_2)))
+            if self.fit_paramsf:
+                num_orders = (stoich_matrix < 0).sum()
+                name_orders = [r'\alpha_{}'.format(ind)
+                               for ind in range(1, num_orders + 1)]
+            else:
+                name_orders = []
 
-    # def set_stoichiometry(self, stoich_matrix):
-
-    #     stoich_matrix = np.atleast_2d(stoich_matrix)
-    #     self.num_rxns, self.num_species = stoich_matrix.shape
-
-    #     # Normalize stoichiometric coefficients
-    #     first_negative = (stoich_matrix < 0).argmax(axis=1)
-    #     ref_stoich = np.zeros(self.num_rxns)
-
-    #     for ind in range(self.num_rxns):
-    #         ref_stoich[ind] = stoich_matrix[ind, first_negative[ind]]
-
-    #     self.normalized_stoich = stoich_matrix.T / abs(ref_stoich)
-    #     self.stoich_matrix = stoich_matrix
+            self.name_params = name_k + name_e + name_orders
+            self.num_params = len(self.name_params)
+            self.params = dict(zip(self.name_params, (self.phi_1, self.phi_2)))
 
     def concat_params(self):
-
-        params_k_conc = np.concatenate((self.phi_1, self.phi_2))
         if self.elem_flag:
+            params_k_conc = np.concatenate((self.phi_1, self.phi_2))
             if self.fit_paramsf:  # rxn orders not fixed
                 orders = self.params_f[self.order_map]
                 params_concat = np.concatenate((params_k_conc, orders))
@@ -423,7 +420,10 @@ class RxnKinetics:
             else:  # rxn orders are fixed
                 params_concat = params_k_conc
 
-        else:
+        elif self.custom_model:
+            params_concat = self.custom_params
+        else:  # TODO: this should not exist. 'params_f' should be just rxn_orders and the concept of elementary rxns be expanded to power law or mass action kinetics
+            params_k_conc = np.concatenate((self.phi_1, self.phi_2))
             params_concat = np.concatenate((params_k_conc, self.params_f))
 
         return params_concat
@@ -598,23 +598,24 @@ class RxnKinetics:
             return jac_states
 
         else:
-            temp_terms = self.temp_term(temp)
-
             if self.custom_model:
-                rxn_rates = self.custom_model(conc, temp, params)
-            elif self.keq_params is None:
-                f_terms = self.elem_f_model(conc, self.params_f,
-                                            *self.args_kin)
+                rxn_rates = self.custom_model(conc, temp, self.custom_params)
             else:
-                f_terms = self.equilibrium_model(conc, temp, delta_hrxn)
+                temp_terms = self.temp_term(temp)
+                if self.keq_params is None:
+                    f_terms = self.elem_f_model(conc, self.params_f,
+                                                *self.args_kin)
+                else:
+                    f_terms = self.equilibrium_model(conc, temp, delta_hrxn)
 
-            if 'f_terms' in locals():
                 rxn_rates = temp_terms * f_terms
 
             if overall_rates:  # per species
                 total_rates = np.dot(rxn_rates, self.normalized_stoich.T)
                 return total_rates
             else:  # per rxn
+                if rxn_rates.ndim == 1:
+                    rxn_rates = rxn_rates[:, np.newaxis]
                 return rxn_rates
 
 

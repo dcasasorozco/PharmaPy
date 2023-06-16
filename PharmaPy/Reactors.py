@@ -471,6 +471,9 @@ class _BaseReactor:
         self.Kinetics.set_params(params)
         self.elapsed_time = 0
 
+        if self.Kinetics.custom_model:
+            self.return_sens = False
+
         if self.return_sens:
             t_prof, states, sens = self.solve_unit(time_grid=t_vals,
                                                    verbose=False,
@@ -573,7 +576,7 @@ class _BaseReactor:
 
 class BatchReactor(_BaseReactor):
     """Inherited constructor for the Batch reactor class.
-    
+
     Parameters
     ---------
     partic_species : list of str
@@ -599,7 +602,7 @@ class BatchReactor(_BaseReactor):
         while computing the variable. Functions are of the form
         f(time) = state_value
     h_conv : float (optional, default = 1000)
-        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`). 
+        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`).
     ht_mode : str (optional, default = 'jacket')
         What method is used for heat transfer. Options: ['jacket',
         'coil', 'bath']
@@ -743,7 +746,7 @@ class BatchReactor(_BaseReactor):
         eval_sens : bool (optional, default = False)
             Boolean value indicating whether the parametric
             sensitivity system will be included during simulation.
-            Must be true to access sensitivity information.     
+            Must be true to access sensitivity information.
         verbose : bool (optional, default = True)
             Boolean value indicating whether the simulator will
             output run statistics after simulation is complete.
@@ -910,7 +913,7 @@ class BatchReactor(_BaseReactor):
 class CSTR(_BaseReactor):
     """
     Inherited constructor for the continuous stirred-tank reactor (CSTR) class.
-    
+
     Parameters
     ----------
     partic_species : list of str
@@ -936,7 +939,7 @@ class CSTR(_BaseReactor):
         while computing the variable. Functions are of the form
         f(time) = state_value
     h_conv : float (optional, default = 1000)
-        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`). 
+        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`).
     ht_mode : str (optional, default = 'jacket')
         What method is used for heat transfer. Options: ['jacket',
         'coil', 'bath']
@@ -952,7 +955,7 @@ class CSTR(_BaseReactor):
                  isothermal=True, reset_states=False, controls=None,
                  h_conv=1000, ht_mode='jacket', return_sens=True,
                  state_events=None):
-        
+
         super().__init__(mask_params,
                          base_units, temp_ref, isothermal,
                          reset_states, controls,
@@ -1207,7 +1210,7 @@ class CSTR(_BaseReactor):
 class SemibatchReactor(CSTR):
     """
     Inherited constructor for the semibatch stirred-tank reactor class. This method inherits from the CSTR constructor.
-    
+
     Parameters
     ----------
     partic_species : list of str
@@ -1236,7 +1239,7 @@ class SemibatchReactor(CSTR):
         while computing the variable. Functions are of the form
         f(time) = state_value
     h_conv : float (optional, default = 1000)
-        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`). 
+        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`).
     ht_mode : str (optional, default = 'jacket')
         What method is used for heat transfer. Options: ['jacket',
         'coil', 'bath']
@@ -1246,14 +1249,14 @@ class SemibatchReactor(CSTR):
         Use False if you want the parameter estimation platform to
         estimate the sensitivity system using finite differences
     """
-    
+
     def __init__(self, vol_tank,
                  mask_params=None,
                  base_units='concentration', temp_ref=298.15,
                  isothermal=True, reset_states=False, controls=None,
                  h_conv=1000, ht_mode='jacket', return_sens=True,
                  state_events=None):
-        
+
 
         super().__init__(mask_params,
                          base_units, temp_ref,
@@ -1406,7 +1409,7 @@ class SemibatchReactor(CSTR):
 class PlugFlowReactor(_BaseReactor):
     """
     Inherited constructor for the plug-flow (PFR) reactor class.
-    
+
     Parameters
     ----------
     diam_in : float
@@ -1436,7 +1439,7 @@ class PlugFlowReactor(_BaseReactor):
         while computing the variable. Functions are of the form
         f(time) = state_value
     h_conv : float (optional, default = 1000)
-        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`). 
+        Convective heat transfer coefficient for the liquid phase in the reactor (W m\ :sup:`-2` K\ :sup:`-1`).
     ht_mode : str (optional, default = 'bath')
         What method is used for heat transfer. Options: ['jacket',
         'coil', 'bath']
@@ -1446,7 +1449,7 @@ class PlugFlowReactor(_BaseReactor):
         Use False if you want the parameter estimation platform to
         estimate the sensitivity system using finite differences
     """
-    
+
     def __init__(self, diam_in, num_discr,
                  mask_params=None,
                  base_units='concentration', temp_ref=298.15,
@@ -1454,7 +1457,7 @@ class PlugFlowReactor(_BaseReactor):
                  reset_states=False, controls=None,
                  h_conv=1000, ht_mode='bath', return_sens=True,
                  state_events=None):
-        
+
 
         super().__init__(mask_params,
                          base_units, temp_ref, isothermal,
