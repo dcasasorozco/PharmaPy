@@ -533,6 +533,7 @@ class ParameterEstimation:
     def get_gradient(self, params, out_array=False, set_self=True):
 
         if self.sens_second is None:
+            params = self.reconstruct_params(params)
             raw_sens = []
             for ind in range(self.num_datasets):
                 if self.jac_fun is None:
