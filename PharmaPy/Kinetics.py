@@ -276,7 +276,7 @@ class RxnKinetics:
         # ---------- Parameters
         self.custom_params = None
         if custom_model:
-            self.custom_params = np.asarray(k_params)
+            self.set_params(np.asarray(k_params))
         else:
             params_dict = {'k_params': k_params, 'ea_params': ea_params,
                            'keq_params': keq_params, 'params_f': params_f}
@@ -366,6 +366,8 @@ class RxnKinetics:
             self.params_f = orders
             self.order_map = self.stoich_matrix < 0
 
+        elif self.custom_model:
+            self.custom_params = params
         else:
             self.phi_1, self.phi_2 = np.split(params[:self.num_paramsk], 2)
 

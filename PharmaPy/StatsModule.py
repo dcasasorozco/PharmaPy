@@ -36,7 +36,6 @@ class StatisticsClass:
         self.jac = jac
 
         self.params = inst.params_convg.copy()
-        self.params_unactive = inst.param_seed[inst.map_fixed]
 
         self.y_nominal = inst.y_model
 

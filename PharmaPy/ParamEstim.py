@@ -378,11 +378,9 @@ class ParameterEstimation:
         # --------------- Parameters
         self.num_params_total = len(param_seed)
         if optimize_flags is None:
-            self.map_fixed = []
             self.map_variable = np.array([True]*self.num_params_total)
         else:
             self.map_variable = np.array(optimize_flags)
-            self.map_fixed = ~self.map_variable
 
         self.param_seed = param_seed
 
@@ -445,8 +443,10 @@ class ParameterEstimation:
 
     def reconstruct_params(self, params):
         params_reconstr = np.zeros(self.num_params_total)
-        params_reconstr[self.map_fixed] = self.param_seed[self.map_fixed]
-        params_reconstr[self.map_variable] = params
+        mask_vble = self.map_variable
+
+        params_reconstr[~mask_vble] = self.param_seed[~mask_vble]
+        params_reconstr[mask_vble] = params
 
         return params_reconstr
 
