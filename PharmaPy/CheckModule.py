@@ -15,7 +15,7 @@ import warnings
 root = str(pathlib.Path(__file__).parents[1])
 
 
-def check_modeling_objects(uo, instance_name=None):
+def check_modeling_objects(uo, instance_name=None, exclude=None):
     with open(root + '/data/minimum_modeling_objects.json') as fi:
         checks = json.load(fi)
 
@@ -47,6 +47,12 @@ def check_modeling_objects(uo, instance_name=None):
 
     if cond_utility:
         modeling_objs.append('Utility')
+
+    if exclude is not None:
+        if isinstance(exclude, str):
+            exclude = [exclude]
+
+        modeling_objs = list(set(modeling_objs).difference(exclude))
 
     missing_obj = []
     for obj in modeling_objs:

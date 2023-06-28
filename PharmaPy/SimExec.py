@@ -73,7 +73,10 @@ class SimulationExec:
 
             if name in pick_units:
                 self.uos_instances[name] = instance
-                check_modeling_objects(instance, name)
+
+                # Check modeling objects
+                excluded = getattr(instance, 'excluded_modeling_obj', None)
+                check_modeling_objects(instance, name, excluded)
 
                 if verbose:
                     print()

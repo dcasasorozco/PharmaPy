@@ -162,6 +162,12 @@ class _BaseReactor:
 
         self.isothermal = isothermal
 
+        excluded_modeling_obj = None
+        if isothermal:
+            excluded_modeling_obj = 'Utility'
+
+        self.excluded_modeling_obj = excluded_modeling_obj
+
         # ---------- Modeling objects
         self._Phases = None
         self._Kinetics = None
@@ -763,7 +769,7 @@ class BatchReactor(_BaseReactor):
             sensitivity information of the simulation.
         """
 
-        check_modeling_objects(self)
+        check_modeling_objects(self, exclude=self.excluded_modeling_obj)
 
         self.set_names()
 
@@ -1090,7 +1096,7 @@ class CSTR(_BaseReactor):
     def solve_unit(self, runtime=None, time_grid=None, eval_sens=False,
                    params_control=None, verbose=True, sundials_opts=None):
 
-        check_modeling_objects(self)
+        check_modeling_objects(self, exclude=self.excluded_modeling_obj)
 
         self.params_control = params_control
         self.set_names()
@@ -1294,7 +1300,7 @@ class SemibatchReactor(CSTR):
                    params_control=None, verbose=True, sundials_opts=None):
 
 
-        check_modeling_objects(self)
+        check_modeling_objects(self, exclude=self.excluded_modeling_obj)
 
         self.params_control = params_control
         self.set_names()
@@ -1764,8 +1770,7 @@ class PlugFlowReactor(_BaseReactor):
     def solve_unit(self, runtime=None, time_grid=None, verbose=True,
                    any_event=True, sundials_opts=None):
 
-
-        check_modeling_objects(self)
+        check_modeling_objects(self, exclude=self.excluded_modeling_obj)
 
         if runtime is not None:
             final_time = runtime + self.elapsed_time
