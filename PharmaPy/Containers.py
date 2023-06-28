@@ -642,16 +642,6 @@ class Mixer:
                 self.Liquid_1.updatePhase(mass_frac=last_massfrac,
                                           mass=last_mass)
 
-            # self.Liquid_1.temp = last_temp
-
-            #     self.massFracProf = massfrac
-            #     self.massFlowProf = mass
-            #     self.tempProf = temp
-            # else:
-            #     self.Liquid_1.temp = temp
-            #     self.Liquid_1.updatePhase(mass_frac=last_massfrac,
-            #                               mass=last_mass)
-
             self.Liquid_1.temp = last_temp
 
             self.Outlet = self.Liquid_1

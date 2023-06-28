@@ -146,12 +146,12 @@ def get_inputs_new(time, stream, dict_states_in, **kwargs_interp):
         dictionary with states.
 
     """
-
+    time_flag = getattr(stream, 'time_upstream', None)
     if stream.DynamicInlet is not None:
         inputs = stream.DynamicInlet.evaluate_inputs(time, **kwargs_interp)
         inputs = {'Inlet': inputs}
 
-    elif getattr(stream, 'time_upstream', None) and len(stream.time_upstream) == 1:
+    elif time_flag is not None and len(stream.time_upstream) == 1:
         inputs = {obj: {} for obj in dict_states_in.keys()}
 
     elif stream.y_upstream is not None and stream.time_upstream is not None:
