@@ -320,10 +320,10 @@ def inspect_graph(graph):
 def eliminate_edges(graph):
     with_edges = {}
     for key, val in graph.items():
-        cond = isinstance(val, (tuple, list)) and len(val) > 1
+        cond = isinstance(val, dict) and len(val) > 1
         if cond:
-            graph[key] = [item[1] for item in val]
-            with_edges[key] = val
+            graph[key] = list(val.values())
+            with_edges[key] = {va: ky for ky, va in val.items()}
 
     return graph, with_edges
 
@@ -336,22 +336,20 @@ class Connection:
 
     def transfer_data(self, edge=None):
         matter = self.source_uo.Outlet
+        outputs = self.source_uo.outputs
         if edge is not None:
             matter = matter[edge]
+            outputs = outputs[edge]
 
-        self.FeedConnection(matter)
+        self.FeedConnection(matter, outputs)
         self.ConvertUnits(matter)
         self.PassPhases(matter)
 
-        self.Matter = matter
+        # self.Matter = matter
 
-    def FeedConnection(self, matter):
-        # matter = self.source_uo.Outlet
-        # if isinstance(matter, dict):
-        #     matter = matter[self.source_uo.default_output]
-
+    def FeedConnection(self, matter, outputs):
         self.num_species = matter.num_species
-        matter.y_upstream = self.source_uo.outputs
+        matter.y_upstream = outputs
 
         time_prof = self.source_uo.result.time
 

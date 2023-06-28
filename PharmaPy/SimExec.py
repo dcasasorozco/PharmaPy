@@ -132,9 +132,14 @@ class SimulationExec:
                     print()
 
                 # Create connection object if needed
+                edge = None
+                uo_next = self.execution_names[ind + 1]
+
+                if name in self.multiple_edges:
+                    edge = self.multiple_edges[name][uo_next]
+
                 neighbors = self.graph[name]
                 if len(neighbors) > 0 and self.execution_names[ind + 1] in pick_units:
-                    uo_next = self.execution_names[ind + 1]
                     connection = Connection(
                         source_uo=getattr(self, name),
                         destination_uo=getattr(self, uo_next))
@@ -142,7 +147,7 @@ class SimulationExec:
                     conn_name = 'CONN%i' % count
                     connections[conn_name] = connection
 
-                    connection.transfer_data()
+                    connection.transfer_data(edge=edge)
 
                     count += 1
 
@@ -161,7 +166,7 @@ class SimulationExec:
                 conn_name = 'CONN%i' % count
                 connections[conn_name] = connection
 
-                connection.transfer_data()
+                connection.transfer_data(edge=edge)
 
                 count += 1
 

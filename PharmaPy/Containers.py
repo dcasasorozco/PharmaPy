@@ -1079,6 +1079,7 @@ class Splitter:
     def retrieve_results(self, time, states):
         path = self.Inlet.path_data
         streams_out = {}
+        outputs = {}
 
         flows, mass_frac, temp = states
 
@@ -1089,4 +1090,8 @@ class Splitter:
             stream = LiquidStream(path, **di_phase)
             streams_out[name] = stream
 
+            outputs[name] = {'mass_flow': flows[:, ind],
+                             'mass_frac': mass_frac, 'temp': temp}
+
         self.Outlet = streams_out
+        self.outputs = outputs
