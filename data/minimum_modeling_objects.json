@@ -1,4 +1,4 @@
-{"special": {"Mixer": ["Inlets"], "DynamicCollector": ["Inlet"]},
+{"special": {"Mixer": ["Inlets"], "DynamicCollector": ["Inlet"], "Splitter": ["Inlet"]},
  "Continuous": ["Phases", "Inlet"],
  "Semibatch": ["Phases", "Inlet"],
  "Batch": ["Phases"],

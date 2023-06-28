@@ -1019,43 +1019,74 @@ class DynamicCollector:
 
 
 class Splitter:
-    def __init__(self, splits, names_out=None):
+    def __init__(self, splits):
 
         num_out = len(splits)
-        if names_out is None:
+
+        if isinstance(splits, dict):
+            names_out = list(splits.keys())
+            splits = list(splits.values())
+        else:
             names_out = ['stream_%i' % ind for ind in range(1, num_out + 1)]
 
         self.names_out = names_out
         self.splits = np.atleast_1d(splits)
         self._Inlet = None
 
+        self.oper_mode = 'Continuous'
+        self.nomenclature()
+
     @property
     def Inlet(self):
-        return self._Inlets
+        return self._Inlet
 
     @Inlet.setter
     def Inlet(self, inlet):
         self._Inlet = inlet
 
+    def nomenclature(self):
+        # Inlets
+        self.names_states_in = ('mass_flow', 'mass_frac', 'temp')
+
+        # States
+        self.names_states_out = ('mass_flow', 'mass_frac', 'temp')
+
+    def get_inputs(self, time):
+        u_inputs = get_inputs_new(time, self.Inlet, self.dict_states_in)
+
+        return u_inputs
+
     def solve_unit(self):
+        # Set dictionary of inputs
+        lens = (1, len(self.Inlet.name_species), 1)
+        dict_states_in = dict(zip(self.names_states_in, lens))
+        self.dict_states_in = {'Inlet': dict_states_in}
+
+        time_upstream = self.Inlet.time_upstream
+        inputs = self.get_inputs(time_upstream)['Inlet']
+
+        flow_in = inputs['mass_flow']
+
+        flows_out = np.outer(flow_in, self.splits)
+        temp_out = inputs['temp']
+        mass_frac_out = inputs['mass_frac']
+
+        states = [flows_out, mass_frac_out, temp_out]
+        self.retrieve_results(time_upstream, states)
+
+        return states
+
+    def retrieve_results(self, time, states):
+        path = self.Inlet.path_data
         streams_out = {}
 
-        fields = ('mass_frac', 'temp')
-
-        di_in = {key: getattr(self.Inlet, key) for key in fields}
-
-        flow_in = self.Inlet.mass_frac
-        flows_out = flow_in * self.splits
-
-        path = self.Inlet.path_pure
+        flows, mass_frac, temp = states
 
         for ind, name in enumerate(self.names_out):
-            streams_out[name] = LiquidStream(path, mass_flow=flows_out[ind],
-                                             **di_in)
+            di_phase = {'mass_flow': flows[-1, ind],
+                        'mass_frac': mass_frac[-1], 'temp': temp[-1]}
 
-        self.retrieve_results(streams_out)
+            stream = LiquidStream(path, **di_phase)
+            streams_out[name] = stream
 
-        return streams_out
-
-    def retrieve_results(self, streams):
-        self.Outlet = streams
+        self.Outlet = streams_out
