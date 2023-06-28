@@ -151,6 +151,9 @@ def get_inputs_new(time, stream, dict_states_in, **kwargs_interp):
         inputs = stream.DynamicInlet.evaluate_inputs(time, **kwargs_interp)
         inputs = {'Inlet': inputs}
 
+    elif getattr(stream, 'time_upstream', None) and len(stream.time_upstream) == 1:
+        inputs = {obj: {} for obj in dict_states_in.keys()}
+
     elif stream.y_upstream is not None and stream.time_upstream is not None:
         t_inlet = stream.time_upstream
         y_inlet = stream.y_inlet
@@ -287,7 +290,6 @@ class Connection:
             self.Matter = self.Matter[self.source_uo.default_output]
 
         self.num_species = self.Matter.num_species
-
         self.Matter.y_upstream = self.source_uo.outputs
 
         time_prof = self.source_uo.result.time
@@ -316,20 +318,20 @@ class Connection:
 
             else:
                 states_down = self.destination_uo.names_states_in
-            
+
             # if hasattr(self.Matter, 'moments'):
             #     num_distr = len(self.Matter.moments)
-            
+
             # elif hasattr(self.Matter, 'distrib'):
             #     num_distr = len(self.Matter.distrib)
-            
+
             if 'mu_n' in states_up:
                 num_distr = len(self.Matter.moments)
             elif 'distrib' in states_up:
                 num_distr = len(self.Matter.distrib)
             else:
                 num_distr = 0
-                
+
             name_analyzer = NameAnalyzer(
                 states_up, states_down, self.num_species,
                 num_distr)

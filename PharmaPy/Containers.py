@@ -408,12 +408,16 @@ class Mixer:
                        in zip(massfrac_in, mass_in)]
         massfrac = sum(masscomp_in) / total_mass[..., np.newaxis]
 
+        massfrac = np.atleast_2d(massfrac)
+        total_mass = np.atleast_1d(total_mass)
+
         # ---------- Energy balance
         h_in = []
         for temp, mass_frac in zip(temp_in, massfrac_in):
             h_in.append(self.Liquid_1.getEnthalpy(temp, mass_frac=mass_frac))
 
         energy_in = sum([mass * enth for (mass, enth) in zip(mass_in, h_in)])
+        energy_in = np.atleast_1d(energy_in)
 
         def temp_root(temp, ind=None):
             if ind is None:
@@ -428,11 +432,15 @@ class Mixer:
 
             return balance
 
-        temp_seed = sum(temp_in) / 2
+        # temp_seed = sum(temp_in) / 2
+        # temp_seed = temp_seed[0]
+
+        temp_seed = np.mean(temp_in)
         # temp_bce = fsolve(temp_root, temp_seed)  # TODO: this is very slow
 
-        temp_seed = temp_seed[0]
-        temp_bce = np.zeros(massfrac.shape[0])
+        num_bces = massfrac.shape[0]
+
+        temp_bce = np.zeros(num_bces)
         for idx in range(len(temp_bce)):
             temp_bce[idx] = fsolve(temp_root, temp_seed, args=(idx, ))
             temp_seed = temp_bce[idx]
@@ -530,35 +538,38 @@ class Mixer:
                 states = self.balances_solids(u_input, ind_solids)
         else:
             self.states_in_dict = {'Inlet': states_in_dict}
-            time_prof = [0]  # Static mixer (instantaneous mix)
 
             if self.is_continuous:
 
                 for inlet in self.Inlets:
                     # TODO: should we create a time_prof that contains the
                     # times of all the input time grids? (like a universal set)
-                    time_prof = getattr(inlet, 'time_upstream', None)
+                    time_prof = getattr(inlet, 'time_upstream')
 
-                    if time_prof is not None:
-                        # t_diff = time_prof - self.elapsed_time
-                        # idx_elapsed = np.where(t_diff >= 0)[0][0]
-
-                        # time_prof = np.hstack((self.elapsed_time,
-                        #                        time_prof[idx_elapsed:]))
-
+                    if time_prof is None:
+                        time_prof = [0]
+                    else:
                         break
+            else:
+                time_prof = [0]
+
+            time_prof = np.array(time_prof)
 
             u_input = self.get_inputs_new(time_prof)
 
             # ---------- Create output phase
             path = self.Inlets[0].path_data
+            mass_frac = u_input['mass_frac'][0]
+            if isinstance(mass_frac[0], (np.ndarray, tuple, list)):
+                mass_frac = mass_frac[0]
+
             if self.is_continuous:
                 self.Liquid_1 = LiquidStream(path_thermo=path,
-                                             mass_frac=u_input['mass_frac'][0][0],
+                                             mass_frac=mass_frac,
                                              mass_flow=eps)
             else:
                 self.Liquid_1 = LiquidPhase(path_thermo=path,
-                                            mass_frac=u_input['mass_frac'][0],
+                                            mass_frac=mass_frac,
                                             mass=eps)
 
             # ---------- Run balances
@@ -605,6 +616,7 @@ class Mixer:
             if massfrac.ndim == 1:
                 last_massfrac = massfrac
                 last_mass = mass
+                last_temp = temp
 
                 result = dict(zip(self.name_states, states))
                 result['time'] = time
@@ -614,6 +626,7 @@ class Mixer:
             else:
                 last_massfrac = massfrac[-1]
                 last_mass = mass[-1]
+                last_temp = temp[-1]
 
                 result = dict(zip(self.name_states, states))
                 result['time'] = time
@@ -625,14 +638,21 @@ class Mixer:
             if self.is_continuous:
                 self.Liquid_1.updatePhase(mass_frac=last_massfrac,
                                           mass_flow=last_mass)
-
-                self.massFracProf = massfrac
-                self.massFlowProf = mass
-                self.tempProf = temp
             else:
-                self.Liquid_1.temp = temp
                 self.Liquid_1.updatePhase(mass_frac=last_massfrac,
                                           mass=last_mass)
+
+            # self.Liquid_1.temp = last_temp
+
+            #     self.massFracProf = massfrac
+            #     self.massFlowProf = mass
+            #     self.tempProf = temp
+            # else:
+            #     self.Liquid_1.temp = temp
+            #     self.Liquid_1.updatePhase(mass_frac=last_massfrac,
+            #                               mass=last_mass)
+
+            self.Liquid_1.temp = last_temp
 
             self.Outlet = self.Liquid_1
 
