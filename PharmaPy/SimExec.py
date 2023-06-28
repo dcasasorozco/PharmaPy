@@ -11,7 +11,7 @@ from PharmaPy.ThermoModule import ThermoPhysicalManager
 from PharmaPy.ParamEstim import ParameterEstimation, MultipleCurveResolution
 from PharmaPy.StatsModule import StatisticsClass
 
-from PharmaPy.Connections import Connection, convert_str_flowsheet, topological_bfs
+from PharmaPy.Connections import Connection, convert_str_flowsheet, topological_bfs, inspect_graph
 from PharmaPy.Errors import PharmaPyNonImplementedError
 from PharmaPy.Results import SimulationResult, flatten_dict_fields, get_name_object
 
@@ -35,7 +35,7 @@ class SimulationExec:
         self.oper_mode = []
 
         if isinstance(flowsheet, dict):
-            graph = flowsheet
+            graph = inspect_graph(flowsheet)
         elif isinstance(flowsheet, str):
             graph = convert_str_flowsheet(flowsheet)
 

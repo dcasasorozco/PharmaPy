@@ -262,6 +262,29 @@ def topological_bfs(graph):
     return in_degree, path
 
 
+def unpack_di(di):
+    out = []
+
+    for key, val in di.items():
+        if isinstance(val, dict):
+            out = unpack_di(val)
+        elif isinstance(val, (tuple, list)):
+            member = list(val)
+        else:
+            member = [val]
+
+        out += member
+
+    return out
+
+
+def get_uo_names(graph):
+    source = list(graph.keys())
+    destin = unpack_di(graph)
+
+    return list(dict.fromkeys(source + destin))
+
+
 def convert_str_flowsheet(flowsheet):
     seq = [a.strip() for a in flowsheet.split('-->')]
 
@@ -270,8 +293,28 @@ def convert_str_flowsheet(flowsheet):
     for ind in range(num_uos - 1):
         out[seq[ind]] = [seq[ind + 1]]
 
-    out[seq[num_uos - 1]] = []
+    out = inspect_graph(out)
     return out
+
+
+def complete_graph(graph):
+    uos = get_uo_names(graph)
+
+    for uo in uos:
+        if uo not in graph:
+            graph[uo] = []
+
+    return graph
+
+
+def inspect_graph(graph):
+    graph = complete_graph(graph)
+
+    for key, val in graph.items():
+        if isinstance(val, str):
+            graph[key] = [val]
+
+    return graph
 
 
 class Connection:

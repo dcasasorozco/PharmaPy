@@ -1016,3 +1016,46 @@ class DynamicCollector:
             fig.text(0.5, 0, 'time (s)', ha='center')
 
         return fig, axes
+
+
+class Splitter:
+    def __init__(self, splits, names_out=None):
+
+        num_out = len(splits)
+        if names_out is None:
+            names_out = ['stream_%i' % ind for ind in range(1, num_out + 1)]
+
+        self.names_out = names_out
+        self.splits = np.atleast_1d(splits)
+        self._Inlet = None
+
+    @property
+    def Inlet(self):
+        return self._Inlets
+
+    @Inlet.setter
+    def Inlet(self, inlet):
+        self._Inlet = inlet
+
+    def solve_unit(self):
+        streams_out = {}
+
+        fields = ('mass_frac', 'temp')
+
+        di_in = {key: getattr(self.Inlet, key) for key in fields}
+
+        flow_in = self.Inlet.mass_frac
+        flows_out = flow_in * self.splits
+
+        path = self.Inlet.path_pure
+
+        for ind, name in enumerate(self.names_out):
+            streams_out[name] = LiquidStream(path, mass_flow=flows_out[ind],
+                                             **di_in)
+
+        self.retrieve_results(streams_out)
+
+        return streams_out
+
+    def retrieve_results(self, streams):
+        self.Outlet = streams
