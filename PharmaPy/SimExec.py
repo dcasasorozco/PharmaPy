@@ -11,7 +11,7 @@ from PharmaPy.ThermoModule import ThermoPhysicalManager
 from PharmaPy.ParamEstim import ParameterEstimation, MultipleCurveResolution
 from PharmaPy.StatsModule import StatisticsClass
 
-from PharmaPy.Connections import Connection, convert_str_flowsheet, topological_bfs, inspect_graph
+from PharmaPy.Connections import Connection, convert_str_flowsheet, topological_bfs, inspect_graph, eliminate_edges
 from PharmaPy.Errors import PharmaPyNonImplementedError
 from PharmaPy.Results import SimulationResult, flatten_dict_fields, get_name_object
 
@@ -35,11 +35,15 @@ class SimulationExec:
         self.oper_mode = []
 
         if isinstance(flowsheet, dict):
+            flowsheet, multiple_edges = eliminate_edges(flowsheet)
             graph = inspect_graph(flowsheet)
         elif isinstance(flowsheet, str):
+            multiple_edges = {}
             graph = convert_str_flowsheet(flowsheet)
 
         self.graph = graph
+        self.multiple_edges = multiple_edges
+
         self.in_degree, self.execution_names = topological_bfs(graph)
 
         if len(self.execution_names) < len(self.graph):
@@ -116,7 +120,6 @@ class SimulationExec:
                         instance.state_event_list.append(ss_event)
                         kwargs_uo['any_event'] = False
 
-                # check_modeling_objects(instance, name)
                 instance.solve_unit(**kwargs_uo)
 
                 uo_type = instance.__module__

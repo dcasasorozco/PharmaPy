@@ -317,33 +317,50 @@ def inspect_graph(graph):
     return graph
 
 
+def eliminate_edges(graph):
+    with_edges = {}
+    for key, val in graph.items():
+        cond = isinstance(val, (tuple, list)) and len(val) > 1
+        if cond:
+            graph[key] = [item[1] for item in val]
+            with_edges[key] = val
+
+    return graph, with_edges
+
+
 class Connection:
     def __init__(self, source_uo, destination_uo):
 
         self.source_uo = source_uo
         self.destination_uo = destination_uo
 
-    def transfer_data(self):
-        self.FeedConnection()
-        self.ConvertUnits()
-        self.PassPhases()
+    def transfer_data(self, edge=None):
+        matter = self.source_uo.Outlet
+        if edge is not None:
+            matter = matter[edge]
 
-    def FeedConnection(self):
-        self.Matter = self.source_uo.Outlet
-        if isinstance(self.Matter, dict):
-            self.Matter = self.Matter[self.source_uo.default_output]
+        self.FeedConnection(matter)
+        self.ConvertUnits(matter)
+        self.PassPhases(matter)
 
-        self.num_species = self.Matter.num_species
-        self.Matter.y_upstream = self.source_uo.outputs
+        self.Matter = matter
+
+    def FeedConnection(self, matter):
+        # matter = self.source_uo.Outlet
+        # if isinstance(matter, dict):
+        #     matter = matter[self.source_uo.default_output]
+
+        self.num_species = matter.num_species
+        matter.y_upstream = self.source_uo.outputs
 
         time_prof = self.source_uo.result.time
 
         if self.source_uo.is_continuous:
-            self.Matter.time_upstream = time_prof
+            matter.time_upstream = time_prof
         else:
-            self.Matter.time_upstream = time_prof[-1]
+            matter.time_upstream = time_prof[-1]
 
-    def ConvertUnits(self):
+    def ConvertUnits(self, matter):
         mode_source = self.source_uo.oper_mode
         mode_dest = self.destination_uo.oper_mode
 
@@ -363,16 +380,16 @@ class Connection:
             else:
                 states_down = self.destination_uo.names_states_in
 
-            # if hasattr(self.Matter, 'moments'):
-            #     num_distr = len(self.Matter.moments)
+            # if hasattr(matter, 'moments'):
+            #     num_distr = len(matter.moments)
 
-            # elif hasattr(self.Matter, 'distrib'):
-            #     num_distr = len(self.Matter.distrib)
+            # elif hasattr(matter, 'distrib'):
+            #     num_distr = len(matter.distrib)
 
             if 'mu_n' in states_up:
-                num_distr = len(self.Matter.moments)
+                num_distr = len(matter.moments)
             elif 'distrib' in states_up:
-                num_distr = len(self.Matter.distrib)
+                num_distr = len(matter.distrib)
             else:
                 num_distr = 0
 
@@ -380,9 +397,9 @@ class Connection:
                 states_up, states_down, self.num_species,
                 num_distr)
 
-            # Convert units and pass states to self.Matter
-            converted_states = name_analyzer.convertUnits(self.Matter)
-            self.Matter.y_inlet = converted_states
+            # Convert units and pass states to matter
+            converted_states = name_analyzer.convertUnits(matter)
+            matter.y_inlet = converted_states
 
         elif btf_flag:
             states_up = self.source_uo.names_states_out
@@ -399,18 +416,18 @@ class Connection:
 
             name_analyzer = NameAnalyzer(
                 states_up, states_down, self.num_species,
-                len(getattr(self.Matter, 'distrib', []))
+                len(getattr(matter, 'distrib', []))
                 )
 
-            # Convert units and pass states to self.Matter
-            converted_states = name_analyzer.convertUnits(self.Matter)
-            self.Matter.y_inlet = converted_states
+            # Convert units and pass states to matter
+            converted_states = name_analyzer.convertUnits(matter)
+            matter.y_inlet = converted_states
 
-    def PassPhases(self):
+    def PassPhases(self, matter):
 
         class_destination = self.destination_uo.__class__.__name__
         mode_dest = self.destination_uo.oper_mode
-        transfered_matter = copy.deepcopy(self.Matter)
+        transfered_matter = copy.deepcopy(matter)
 
         transfered_matter.transferred_from_uo = True
 
