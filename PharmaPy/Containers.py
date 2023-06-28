@@ -884,7 +884,8 @@ class DynamicCollector:
             frac_init = init_dict['mass_frac']
             temp_init = init_dict['temp']
 
-            liquid = LiquidPhase(path, temp=temp_init, mass_frac=frac_init)
+            liquid = LiquidPhase(path, temp=temp_init, mass_frac=frac_init,
+                                 mass=np.sqrt(eps))
 
             states_init = np.hstack((frac_init, mass_init, temp_init))
 

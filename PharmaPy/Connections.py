@@ -151,6 +151,7 @@ def get_inputs_new(time, stream, dict_states_in, **kwargs_interp):
         inputs = stream.DynamicInlet.evaluate_inputs(time, **kwargs_interp)
         inputs = {'Inlet': inputs}
 
+    # Streams with a time profile with only one time (e.g. coming out of a MIX)
     elif time_flag is not None and len(stream.time_upstream) == 1:
         inputs = {obj: {} for obj in dict_states_in.keys()}
 
