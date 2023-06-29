@@ -892,10 +892,10 @@ class DynamicCollector:
             self.Phases = (liquid,)
 
             self.states_di = {
-                'mass': {'units': 'kg', 'dim': 1, 'type': 'diff'},
                 'mass_frac': {'units': '', 'dim': self.num_species,
                               'index': self.Liquid_1.name_species,
                               'type': 'diff'},
+                'mass': {'units': 'kg', 'dim': 1, 'type': 'diff'},
                 'temp': {'units': 'K', 'dim': 1, 'type': 'diff'}
                 }
 
