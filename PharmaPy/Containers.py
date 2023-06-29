@@ -1029,11 +1029,19 @@ class Splitter:
         else:
             names_out = ['stream_%i' % ind for ind in range(1, num_out + 1)]
 
+        splits = np.atleast_1d(splits)
+        if sum(splits) < 0.999:
+            print('Warning: the sum of the passed splits is not equal to one. '
+                  'Normalized splits will be used instead')
+
+            splits = splits / splits.sum()
+
         self.names_out = names_out
-        self.splits = np.atleast_1d(splits)
+        self.splits = splits
         self._Inlet = None
 
         self.oper_mode = 'Continuous'
+        self.is_continuous = True
         self.nomenclature()
 
     @property
@@ -1056,11 +1064,26 @@ class Splitter:
 
         return u_inputs
 
-    def solve_unit(self):
+    def get_states_dicts(self):
+        name_comp = self.Inlet.name_species
+        states_di = {
+            'mass_frac': {'dim': len(name_comp),
+                          'index': name_comp, 'units': '',
+                          'type': 'diff', 'depends_on': ['time']},
+            'mass_flow': {'dim': 1, 'units': 'kg/s', 'type': 'diff',
+                          'depends_on': ['time']},
+            'temp': {'dim': 1, 'units': 'K', 'type': 'diff',
+                     'depends_on': ['time']}
+            }
+
+        self.states_di = states_di
+
         # Set dictionary of inputs
-        lens = (1, len(self.Inlet.name_species), 1)
-        dict_states_in = dict(zip(self.names_states_in, lens))
+        dict_states_in = {key: val['dim'] for key, val in states_di.items()}
         self.dict_states_in = {'Inlet': dict_states_in}
+
+    def solve_unit(self):
+        self.get_states_dicts()
 
         time_upstream = self.Inlet.time_upstream
         inputs = self.get_inputs(time_upstream)['Inlet']
@@ -1095,3 +1118,7 @@ class Splitter:
 
         self.Outlet = streams_out
         self.outputs = outputs
+
+        # ---------- Results
+        result_di = {'time': time}
+        self.result = DynamicResult(self.states_di, **result_di)

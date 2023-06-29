@@ -282,6 +282,9 @@ def get_uo_names(graph):
     source = list(graph.keys())
     destin = unpack_di(graph)
 
+    destin = [val[1] if isinstance(val, (tuple, list)) else val
+              for val in destin]
+
     return list(dict.fromkeys(source + destin))
 
 
@@ -293,12 +296,14 @@ def convert_str_flowsheet(flowsheet):
     for ind in range(num_uos - 1):
         out[seq[ind]] = [seq[ind + 1]]
 
-    out = inspect_graph(out)
+    out = complete_graph(out, uos=seq)
+
     return out
 
 
-def complete_graph(graph):
-    uos = get_uo_names(graph)
+def complete_graph(graph, uos=None):
+    if uos is None:
+        uos = get_uo_names(graph)
 
     for uo in uos:
         if uo not in graph:
@@ -307,23 +312,32 @@ def complete_graph(graph):
     return graph
 
 
-def inspect_graph(graph):
-    graph = complete_graph(graph)
-
-    for key, val in graph.items():
-        if isinstance(val, str):
-            graph[key] = [val]
-
-    return graph
-
-
-def eliminate_edges(graph):
+def get_edged_graph(graph):
     with_edges = {}
     for key, val in graph.items():
-        cond = isinstance(val, dict) and len(val) > 1
-        if cond:
-            graph[key] = list(val.values())
-            with_edges[key] = {va: ky for ky, va in val.items()}
+        # cond = isinstance(val, dict) and len(val) > 1
+
+        di = {}
+        for ind, neighbor in enumerate(val):
+            if isinstance(neighbor, (list, tuple)):
+                di.update({neighbor[1]: neighbor[0]})
+
+                graph[key][ind] = neighbor[1]
+
+            elif isinstance(neighbor, str):
+                di.update({neighbor: None})
+
+        with_edges[key] = di
+
+        # if isinstance(val, dict):
+        #     graph[key] = list(val.values())
+
+        #     with_edges = {va: ky for ky, va in val.items()}
+        # else:
+        #     with_edges = {key: None}
+        # # if cond:
+        # #     graph[key] = list(val.values())
+        # #     with_edges[key] = {va: ky for ky, va in val.items()}
 
     return graph, with_edges
 
@@ -334,9 +348,10 @@ class Connection:
         self.source_uo = source_uo
         self.destination_uo = destination_uo
 
-    def transfer_data(self, edge=None):
+    def transfer_data(self, edge):
         matter = self.source_uo.Outlet
         outputs = self.source_uo.outputs
+
         if edge is not None:
             matter = matter[edge]
             outputs = outputs[edge]

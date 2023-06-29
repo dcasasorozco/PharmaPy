@@ -11,7 +11,7 @@ from PharmaPy.ThermoModule import ThermoPhysicalManager
 from PharmaPy.ParamEstim import ParameterEstimation, MultipleCurveResolution
 from PharmaPy.StatsModule import StatisticsClass
 
-from PharmaPy.Connections import Connection, convert_str_flowsheet, topological_bfs, inspect_graph, eliminate_edges
+from PharmaPy.Connections import Connection, convert_str_flowsheet, complete_graph, topological_bfs, get_edged_graph
 from PharmaPy.Errors import PharmaPyNonImplementedError
 from PharmaPy.Results import SimulationResult, flatten_dict_fields, get_name_object
 
@@ -31,24 +31,44 @@ class SimulationExec:
         # Outputs
         self.StreamTable = None
 
-        self.uos_instances = {}  # TODO: check this under the new graph implem
         self.oper_mode = []
 
-        if isinstance(flowsheet, dict):
-            flowsheet, multiple_edges = eliminate_edges(flowsheet)
-            graph = inspect_graph(flowsheet)
-        elif isinstance(flowsheet, str):
-            multiple_edges = {}
+        graph = flowsheet
+        if isinstance(flowsheet, str):
             graph = convert_str_flowsheet(flowsheet)
 
+        elif isinstance(flowsheet, dict):
+            graph = complete_graph(graph)
+
+        graph, with_edges = get_edged_graph(graph)
+
         self.graph = graph
-        self.multiple_edges = multiple_edges
+        self.graph_edged = with_edges
 
         self.in_degree, self.execution_names = topological_bfs(graph)
 
         if len(self.execution_names) < len(self.graph):
             raise PharmaPyNonImplementedError(
                 "Provided flowsheet contains recycle stream(s)")
+
+    def set_connections(self, uo_name, pick_units, count):
+        connect_inst = {}
+        neighbors = self.graph_edged[uo_name]
+        for neighbor, edge in neighbors.items():
+            if neighbor in pick_units:
+                connection = Connection(source_uo=getattr(self, uo_name),
+                                        destination_uo=getattr(self, neighbor))
+
+                conn_name = 'CONN%i' % count
+                connect_inst[conn_name] = connection
+
+                uo = getattr(self, uo_name)
+                if edge is None and hasattr(uo, 'default_outlet'):
+                    edge = uo.default_outlet
+
+                connection.transfer_data(edge=edge)
+
+        return connect_inst
 
     def SolveFlowsheet(self, kwargs_run=None, pick_units=None, verbose=True,
                        steady_state_di=None, tolerances_ss=None, ss_time=0):
@@ -71,12 +91,15 @@ class SimulationExec:
         connections = {}
         count = 1
 
+        self.uos_instances = {name: getattr(self, name) for name in self.graph
+                              if name in pick_units}
+
         # ss_time = 0
         for ind, name in enumerate(self.execution_names):
             instance = getattr(self, name)
 
             if name in pick_units:
-                self.uos_instances[name] = instance
+                # self.uos_instances[name] = instance
 
                 # Check modeling objects
                 excluded = getattr(instance, 'excluded_modeling_obj', None)
@@ -132,24 +155,25 @@ class SimulationExec:
                     print()
 
                 # Create connection object if needed
-                edge = None
-                uo_next = self.execution_names[ind + 1]
+                new_connections = self.set_connections(name, pick_units, count)
+                # edge = None
+                # uo_next = self.execution_names[ind + 1]
 
-                if name in self.multiple_edges:
-                    edge = self.multiple_edges[name][uo_next]
+                # if name in self.multiple_edges:
+                #     edge = self.multiple_edges[name][uo_next]
 
-                neighbors = self.graph[name]
-                if len(neighbors) > 0 and self.execution_names[ind + 1] in pick_units:
-                    connection = Connection(
-                        source_uo=getattr(self, name),
-                        destination_uo=getattr(self, uo_next))
+                # neighbors = self.graph[name]
+                # if len(neighbors) > 0 and self.execution_names[ind + 1] in pick_units:
+                #     connection = Connection(
+                #         source_uo=getattr(self, name),
+                #         destination_uo=getattr(self, uo_next))
 
-                    conn_name = 'CONN%i' % count
-                    connections[conn_name] = connection
+                #     conn_name = 'CONN%i' % count
+                #     connections[conn_name] = connection
 
-                    connection.transfer_data(edge=edge)
+                #     connection.transfer_data(edge=edge)
 
-                    count += 1
+                #     count += 1
 
                 # Processing times
                 if hasattr(instance.result, 'time'):
