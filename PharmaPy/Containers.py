@@ -1030,7 +1030,7 @@ class Splitter:
             names_out = ['stream_%i' % ind for ind in range(1, num_out + 1)]
 
         splits = np.atleast_1d(splits)
-        if sum(splits) < 0.999:
+        if not np.isclose(sum(splits), 1, rtol=1e-2):
             print('Warning: the sum of the passed splits is not equal to one. '
                   'Normalized splits will be used instead')
 

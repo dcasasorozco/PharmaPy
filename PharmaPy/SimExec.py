@@ -99,8 +99,6 @@ class SimulationExec:
             instance = getattr(self, name)
 
             if name in pick_units:
-                # self.uos_instances[name] = instance
-
                 # Check modeling objects
                 excluded = getattr(instance, 'excluded_modeling_obj', None)
                 check_modeling_objects(instance, name, excluded)
@@ -156,23 +154,7 @@ class SimulationExec:
 
                 # Create connection object if needed
                 new_connections = self.set_connections(name, pick_units, count)
-                # edge = None
-                # uo_next = self.execution_names[ind + 1]
-
-                # if name in self.multiple_edges:
-                #     edge = self.multiple_edges[name][uo_next]
-
-                # neighbors = self.graph[name]
-                # if len(neighbors) > 0 and self.execution_names[ind + 1] in pick_units:
-                #     connection = Connection(
-                #         source_uo=getattr(self, name),
-                #         destination_uo=getattr(self, uo_next))
-
-                #     conn_name = 'CONN%i' % count
-                #     connections[conn_name] = connection
-
-                #     connection.transfer_data(edge=edge)
-
+                connections.update(new_connections)
                 #     count += 1
 
                 # Processing times
@@ -182,17 +164,11 @@ class SimulationExec:
 
             # instance is already solved, pass data to connection
             elif isinstance(instance.outputs, dict):
-                connection = Connection(
-                    source_uo=getattr(self, name),
-                    destination_uo=getattr(self,
-                                           self.execution_names[ind + 1]))
+                new_connections = self.set_connections(name, pick_units, count)
+                connections.update(new_connections)
+                # TODO: THIS IS HIGHLY EXPERIMENTAL AND NEEDS TO BE TESTED THOROUGLY
 
-                conn_name = 'CONN%i' % count
-                connections[conn_name] = connection
-
-                connection.transfer_data(edge=edge)
-
-                count += 1
+                # count += 1
 
         self.time_processing = time_processing
 
