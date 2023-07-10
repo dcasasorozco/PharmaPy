@@ -682,18 +682,19 @@ class ParameterEstimation:
         dof = self.num_data_total - self.num_params
         mse = 1 / dof * np.dot(resid.T, resid)
 
-        if include_mse:
-            hessian_approx *= mse
-
         try:
             covar = np.linalg.inv(hessian_approx)
+
+            if include_mse:
+                covar *= mse
 
             # Correlation matrix
             sigma = np.sqrt(covar.diagonal())
             d_matrix = np.diag(1/sigma)
             correlation = d_matrix.dot(covar).dot(d_matrix)
         except:
-            print('Hessian approximation is singular. Covariance could not be calculated.')
+            print('Hessian approximation is singular. '
+                  'Covariance could not be calculated.')
             covar = None
             correlation = None
 
