@@ -153,7 +153,11 @@ def levenberg_marquardt(x, func, deriv, fletcher_modif=False, max_fun_eval=100,
     else:
         reason = 'Maximum iterations exceeded'
 
-    covar_x = inv(a_matrix)
+    try:
+        covar_x = inv(a_matrix)
+    except:
+        print('Singular matrix. Covariance could not be determined')
+        covar_x = None
 
     if verbose:
         print('{:<40}'.format('-'*60))

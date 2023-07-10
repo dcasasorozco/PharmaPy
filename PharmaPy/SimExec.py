@@ -56,15 +56,15 @@ class SimulationExec:
         neighbors = self.graph_edged[uo_name]
         for neighbor, edge in neighbors.items():
             if neighbor in pick_units:
-                connection = Connection(source_uo=getattr(self, uo_name),
+                source_uo = getattr(self, uo_name)
+                connection = Connection(source_uo=source_uo,
                                         destination_uo=getattr(self, neighbor))
 
                 conn_name = 'CONN%i' % count
                 connect_inst[conn_name] = connection
 
-                uo = getattr(self, uo_name)
-                if edge is None and hasattr(uo, 'default_outlet'):
-                    edge = uo.default_outlet
+                if edge is None and hasattr(source_uo, 'default_outlet'):
+                    edge = source_uo.default_outlet
 
                 connection.transfer_data(edge=edge)
 
@@ -155,7 +155,7 @@ class SimulationExec:
                 # Create connection object if needed
                 new_connections = self.set_connections(name, pick_units, count)
                 connections.update(new_connections)
-                #     count += 1
+                count += 1
 
                 # Processing times
                 if hasattr(instance.result, 'time'):
@@ -168,7 +168,7 @@ class SimulationExec:
                 connections.update(new_connections)
                 # TODO: THIS IS HIGHLY EXPERIMENTAL AND NEEDS TO BE TESTED THOROUGLY
 
-                # count += 1
+                count += 1
 
         self.time_processing = time_processing
 

@@ -229,8 +229,19 @@ class RxnKinetics:
         if rxn_list is not None:
             di, partic_species = disect_rxns(rxn_list)
             stoich_matrix = get_stoich(di, partic_species)
+            is_reactant = []
+
+            for rxn in di.values():
+                li = [sp in rxn['reactants'] for sp in partic_species]
+
+                is_reactant.append(li)
+
         else:
             stoich_matrix = np.atleast_2d(stoich_matrix)
+
+            is_reactant = stoich_matrix < 0
+
+        self.order_map = np.asarray(is_reactant)
 
         perm_idx = get_permutation_indexes(name_species, partic_species)
         stoich_matrix = stoich_matrix[:, perm_idx]
@@ -341,30 +352,37 @@ class RxnKinetics:
             if self.elem_flag:
                 params_f = params.get('params_f', None)
                 if params_f is None:
-                    is_reactant = self.stoich_matrix < 0
-                    orders = abs(is_reactant * self.stoich_matrix)
+                    orders = abs(self.order_map * self.stoich_matrix)
                     self.fit_paramsf = False
                 else:
-                    order_map = self.stoich_matrix < 0
-
                     params_f = params['params_f']
                     if not isinstance(params_f[0], (list, tuple)):
                         params_f = [params_f]
 
                     orders = np.zeros_like(self.stoich_matrix)
                     for ind, order in enumerate(params_f):
-                        orders[ind, order_map[ind]] = order
+                        num_reactants = self.order_map[ind].sum()
+                        num_orders = len(order)
+                        if num_reactants != num_orders:
+                            mess = "Number of reactants ({}) for reaction {} " \
+                                "does not match number of provided reaction " \
+                                "orders ({})".format(num_reactants,
+                                                     ind + 1,
+                                                     num_orders)
+
+                            raise ValueError(mess)
+
+                        orders[ind, self.order_map[ind]] = order
 
                 if orders.ndim == 1:
                     orders = orders[np.newaxis, ...]
 
-                params_f = orders
+                # params_f = orders
+                self.params_f = orders
+
             elif params_f is None:
                 raise RuntimeError("For user-defined kinetic function, "
                                    "argument 'params_f' is mandatory.")
-
-            self.params_f = orders
-            self.order_map = self.stoich_matrix < 0
 
         elif self.custom_model:
             self.custom_params = params
@@ -402,7 +420,8 @@ class RxnKinetics:
                 name_e = ['E_{a, %i}' % ind for ind in range(1, num_kpar + 1)]
 
             if self.fit_paramsf:
-                num_orders = (stoich_matrix < 0).sum()
+                # num_orders = (stoich_matrix < 0).sum()
+                num_orders = self.order_map.sum()
                 name_orders = [r'\alpha_{}'.format(ind)
                                for ind in range(1, num_orders + 1)]
             else:
