@@ -19,6 +19,7 @@ from PharmaPy.Connections import get_inputs_new
 from PharmaPy.Commons import unpack_states
 
 from PharmaPy.Results import DynamicResult
+from PharmaPy.Plotting import plot_function
 
 from scipy.optimize import newton, fsolve
 import numpy as np
@@ -963,16 +964,18 @@ class DynamicCollector:
             self.outputs = self.CrystInst.outputs
             self.result = self.CrystInst.result
 
-    def plot_profiles(self, fig_size=None, time_div=1, pick_comp=None,
-                      kwargs=None):
-        if kwargs is None:
-            kwargs = {}
+    def plot_profiles(self, time_div=1, pick_comp=None, fig_kw=None):
+        if fig_kw is None:
+            fig_kw = {}
 
         if self.is_cryst:
             fig, axes, ax_right = self.CrystInst.plot_profiles(
-                fig_size, time_div=time_div, **kwargs)
+                time_div=time_div, **fig_kw)
         else:
-            fig, axes = self.plot_local(fig_size, time_div, pick_comp)
+            # fig, axes = self.plot_local(fig_size, time_div, pick_comp)
+            states_plot = [('mass_frac', pick_comp), 'mass', 'temp']
+            fig, axes = plot_function(self, states_plot, nrows=2,
+                                      fig_map=(0, 1, 1), **fig_kw)
 
         return fig, axes
 

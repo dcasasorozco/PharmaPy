@@ -204,7 +204,9 @@ def set_legend(ax, states_fstates, names, state_names, legend):
 
 def plot_function(uo, state_names, axes=None, fig_map=None, ylabels=None,
                   include_units=True, **fig_kwargs):
-    time, data = get_states_result(uo.result, *state_names)
+
+    result = uo.result
+    time, data = get_states_result(result, *state_names)
 
     if fig_map is None:
         fig_map = range(len(data))
@@ -224,7 +226,7 @@ def plot_function(uo, state_names, axes=None, fig_map=None, ylabels=None,
     colors = plt.cm.tab10
 
     names = list(data.keys())
-    states_and_fstates = {**uo.states_di, **uo.fstates_di}
+    states_and_fstates = {**result.di_states, **result.di_fstates}
 
     for ind, idx in enumerate(fig_map):
         name = names[ind]

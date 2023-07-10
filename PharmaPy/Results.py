@@ -167,6 +167,10 @@ class DynamicResult:
     def __init__(self, di_states, di_fstates=None, **results):
         self.__dict__.update(**results)
         self.di_states = di_states
+
+        if di_fstates is None:
+            di_fstates = {}
+
         self.di_fstates = di_fstates
 
     def __repr__(self):
