@@ -415,10 +415,22 @@ class _BaseCryst:
             self.fstates_di['mu_n'] = {'dim': 4, 'index': list(range(4)),
                                        'units': 'm**n'}
 
-            self.fstates_di['vol_distrib'] = {
+            self.fstates_di['vol_perc'] = {
                 'dim': self.num_distr,
                 'index': list(range(self.num_distr)),
                 'units': 'm**3/m**3'}
+
+            if name_class == 'MSMPR':
+                self.fstates_di['vol_distrib'] = {
+                    'dim': self.num_distr,
+                    'index': list(range(self.num_distr)),
+                    'units': 'm**3/m**3/um'}
+
+            else:
+                self.fstates_di['vol_distrib'] = {
+                    'dim': self.num_distr,
+                    'index': list(range(self.num_distr)),
+                    'units': 'm**3/um'}
 
     def reset(self):
         copy_dict = copy.deepcopy(self.__original_prof__)
@@ -1925,11 +1937,14 @@ class MSMPR(_BaseCryst):
 
         if self.method == '1D-FVM':
             dp['distrib'] *= 1 / self.scale
+
             moms = self.Solid_1.getMoments(distrib=dp['distrib'])
             dp['mu_n'] = moms
 
-            dp['vol_distrib'] = self.Solid_1.convert_distribution(
+            vol_distrib = self.Solid_1.convert_distribution(
                 num_distr=dp['distrib'])
+
+            dp.update(vol_distrib)
 
             self.Solid_1.updatePhase(distrib=dp['distrib'][-1] * vol_slurry)
 

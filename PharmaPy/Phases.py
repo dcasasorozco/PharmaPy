@@ -83,7 +83,7 @@ def getPropsPhaseMix(phases, basis='mass'):
 
 class LiquidPhase(ThermoPhysicalManager):
     """ Creates a LiquidPhase object.
-    
+
     Parameters
     ----------
     mass_frac : array-like (optional)
@@ -663,7 +663,7 @@ class VaporPhase(ThermoPhysicalManager):
         Parameters
         ----------
         temp : float or array-like
-            Temperature for enthalpy calculation in K.   
+            Temperature for enthalpy calculation in K.
         temp_ref : float, optional
             Reference temperature for enthalpy calculation. The default is 298.15.
         mass_frac : array-like, optional
@@ -804,14 +804,14 @@ class VaporPhase(ThermoPhysicalManager):
 
 
 class SolidPhase(ThermoPhysicalManager):
-    """    
+    """
 
     Parameters
     ----------
     path_thermo : string
         Directory of the physical properties .json file
     temp : float or array-like
-        Temperature for enthalpy calculation in K.   
+        Temperature for enthalpy calculation in K.
     temp_ref : float, optional
         Reference temperature for enthalpy calculation. The default is 298.15.
     pres : float, optional
@@ -822,7 +822,7 @@ class SolidPhase(ThermoPhysicalManager):
         Fraction of the species participating in the solid phase in mass basis.
         The default is None.
     moments : array, optional
-        Array of size N, containing the distribution moments in um**n, 
+        Array of size N, containing the distribution moments in um**n,
         for n = 0,...,N - 1. The default is None.
     num_mom : integer, optional
         Maximum order of moments describing solid phase. The default is 4.
@@ -833,7 +833,7 @@ class SolidPhase(ThermoPhysicalManager):
         Array of size N, constaining the initial distribution of crystals
         [#/m**3/um]. The default is None.
     distrib_type : string, optional
-        Type of distribution of crystals. The option is 'mass_frac' 
+        Type of distribution of crystals. The option is 'mass_frac'
         or 'vol_perc'. The default is 'vol_perc'.
     moisture : float, optional
         Initial moisture content of the solids. The default is 0.
@@ -851,14 +851,14 @@ class SolidPhase(ThermoPhysicalManager):
     None.
 
     """
-    
+
     def __init__(self, path_thermo, temp=298.15, temp_ref=298.15, pres=101325,
                  mass=0, mass_frac=None,
                  moments=None, num_mom=4,
                  distrib=None, x_distrib=None, distrib_type='vol_perc',
                  moisture=0, porosity=0,
                  mole_conc=None, kv=1):
-        
+
         super().__init__(path_thermo)
         self.kv = kv
         self.distrib_type = distrib_type
@@ -975,8 +975,14 @@ class SolidPhase(ThermoPhysicalManager):
             mom_three = self.getMoments(distrib=num_distr, mom_num=3)
             mom_three[mom_three == 0] = eps
 
-            distrib_out = num_distr * self.dx * x_distrib**3 * self.kv / \
-                mom_three / 1e18
+            distrib_perc = num_distr * self.dx * x_distrib**3 * self.kv / \
+                mom_three / 1e18 * 100
+
+            distrib_vol = num_distr * x_distrib**3 * self.kv / 1e18  # vol
+
+            distrib_out = {'vol_perc': distrib_perc,
+                           'vol_distrib': distrib_vol}
+
         elif vol_distr is not None:
             if mass == 0:
                 raise ValueError("'vol_perc' given, mass must be greater "
