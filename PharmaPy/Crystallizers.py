@@ -109,7 +109,7 @@ class _BaseCryst:
     """
     np = np
     # @decor_states
-    
+
     def __init__(self, mask_params,
                  method, target_comp, scale, vol_tank, controls,
                  adiabatic, rad_zero,
@@ -1257,7 +1257,7 @@ class _BaseCryst:
 
 class BatchCryst(_BaseCryst):
     """Construct a Batch Crystallizer object
-    
+
     Parameters
     ----------
     target_comp : str, list of strings
@@ -1677,7 +1677,7 @@ class BatchCryst(_BaseCryst):
 
 class MSMPR(_BaseCryst):
     """ Construct a MSMPR object.
-    
+
     Parameters
     ----------
     target_comp : str, list of strings
@@ -1968,13 +1968,17 @@ class MSMPR(_BaseCryst):
         else:
             vol_liq = dp['vol'][-1]
 
-            rho_solid = self.Solid_1.getDensity()
-            vol_solid = dp['mu_n'][-1, 3] * self.Solid_1.kv * rho_solid
+            # rho_solid = self.Solid_1.getDensity()
+            # vol_solid = dp['mu_n'][-1, 3] * self.Solid_1.kv * rho_solid
+            vol_solid = dp['mu_n'][-1, 3] * self.Solid_1.kv
 
             vol_slurry = vol_solid + vol_liq
 
             if self.method == '1D-FVM':
                 distrib_tilde = dp['total_distrib'][-1]
+                self.Liquid_1.updatePhase(vol=vol_liq,
+                                          mass_conc=dp['mass_conc'][-1])
+                self.Liquid_1.temp = dp['temp'][-1]
                 self.Solid_1.updatePhase(distrib=distrib_tilde)
 
                 self.Slurry = Slurry()
@@ -2017,15 +2021,17 @@ class MSMPR(_BaseCryst):
                     moments=dp['mu_n'][-1])
 
             self.get_heat_duty(time, states)  # TODO: allow for semi-batch
+            self.Outlet.Phases = (liquid_out, solid_out)
 
         else:
-            liquid_out = copy.deepcopy(self.Liquid_1)
-            solid_out = copy.deepcopy(self.Solid_1)
+            # liquid_out = copy.deepcopy(self.Liquid_1)
+            # solid_out = copy.deepcopy(self.Solid_1)
 
-            self.Outlet = Slurry(vol=vol_slurry)
+            # self.Outlet = Slurry(vol=vol_slurry)
+            self.Outlet = self.Slurry
 
         # self.outputs = y_outputs
-        self.Outlet.Phases = (liquid_out, solid_out)
+        # self.Outlet.Phases = (liquid_out, solid_out)
 
     def get_heat_duty(self, time, states):
         q_heat = np.zeros((len(time), 3))
@@ -2051,7 +2057,7 @@ class MSMPR(_BaseCryst):
 
 class SemibatchCryst(MSMPR):
     """ Construct a Semi-batch Crystallizer object
-    
+
     Parameters
     ----------
     target_comp : str, list of strings
