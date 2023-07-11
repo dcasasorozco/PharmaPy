@@ -1911,7 +1911,8 @@ class MSMPR(_BaseCryst):
 
         if 'temp' in self.controls:
             control = self.controls['temp']
-            dp['temp'] = control['fun'](time, *control['args'], **control['kwargs'])
+            dp['temp'] = control['fun'](time, *control['args'],
+                                        **control['kwargs'])
 
         sat_conc = self.Kinetics.get_solubility(dp['temp'], dp['mass_conc'])
 
@@ -1968,12 +1969,6 @@ class MSMPR(_BaseCryst):
         else:
             vol_liq = dp['vol'][-1]
 
-            # rho_solid = self.Solid_1.getDensity()
-            # vol_solid = dp['mu_n'][-1, 3] * self.Solid_1.kv * rho_solid
-            vol_solid = dp['mu_n'][-1, 3] * self.Solid_1.kv
-
-            vol_slurry = vol_solid + vol_liq
-
             if self.method == '1D-FVM':
                 distrib_tilde = dp['total_distrib'][-1]
                 self.Liquid_1.updatePhase(vol=vol_liq,
@@ -2024,14 +2019,7 @@ class MSMPR(_BaseCryst):
             self.Outlet.Phases = (liquid_out, solid_out)
 
         else:
-            # liquid_out = copy.deepcopy(self.Liquid_1)
-            # solid_out = copy.deepcopy(self.Solid_1)
-
-            # self.Outlet = Slurry(vol=vol_slurry)
-            self.Outlet = self.Slurry
-
-        # self.outputs = y_outputs
-        # self.Outlet.Phases = (liquid_out, solid_out)
+            self.Outlet = copy.deepcopy(self.Slurry)
 
     def get_heat_duty(self, time, states):
         q_heat = np.zeros((len(time), 3))
