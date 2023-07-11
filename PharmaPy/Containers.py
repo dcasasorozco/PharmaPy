@@ -972,51 +972,9 @@ class DynamicCollector:
             fig, axes, ax_right = self.CrystInst.plot_profiles(
                 time_div=time_div, **fig_kw)
         else:
-            # fig, axes = self.plot_local(fig_size, time_div, pick_comp)
             states_plot = [('mass_frac', pick_comp), 'mass', 'temp']
             fig, axes = plot_function(self, states_plot, nrows=2,
                                       fig_map=(0, 1, 1), **fig_kw)
-
-        return fig, axes
-
-    def plot_local(self, fig_size=None, time_div=1, pick_comp=None):
-
-        if pick_comp is None:
-            pick_comp = range(self.wConcProf.shape[1])
-
-        leg_comp = [self.name_species[ind] for ind in pick_comp]
-
-        fig, axes = plt.subplots(2, 1, figsize=fig_size)
-
-        # Mass fraction
-        axes[0].plot(self.timeProf / time_div, self.wConcProf[:, pick_comp])
-
-        axes[0].set_ylabel('mass frac')
-        axes[0].legend(leg_comp)
-
-        # Mass and temperature
-        axes[1].plot(self.timeProf / time_div, self.massProf, 'k')
-        axes[1].set_ylabel('mass (kg)')
-
-        ax_temp = axes[1].twinx()
-        ax_temp.plot(self.timeProf / time_div, self.tempProf, '--')
-        ax_temp.set_ylabel('$T$ (K)')
-
-        color = ax_temp.lines[0].get_color()
-        ax_temp.spines['right'].set_color(color)
-        ax_temp.tick_params(colors=color)
-        ax_temp.yaxis.label.set_color(color)
-        ax_temp.spines['top'].set_visible(False)
-
-        for axis in axes:
-            axis.spines['top'].set_visible(False)
-            axis.spines['right'].set_visible(False)
-
-            axis.xaxis.set_minor_locator(AutoMinorLocator(2))
-            axis.yaxis.set_minor_locator(AutoMinorLocator(2))
-
-        if time_div == 1:
-            fig.text(0.5, 0, 'time (s)', ha='center')
 
         return fig, axes
 
