@@ -1602,8 +1602,10 @@ class BatchCryst(_BaseCryst):
             moms = self.Solid_1.getMoments(distrib=dp['distrib'])
             dp['mu_n'] = moms
 
-            dp['vol_distrib'] = self.Solid_1.convert_distribution(
+            vol_dist = self.Solid_1.convert_distribution(
                 num_distr=dp['distrib'])
+
+            dp.update(vol_dist)
 
         if 'temp' in self.controls:
             control = self.controls['temp']
