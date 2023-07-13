@@ -282,8 +282,58 @@ class ThermoPhysicalManager:
         return heat_of_rxn  # J/mol
 
     def getDensityPure(self, phase='liquid', temp=None):
+        """
+        Get density of pure component. For liquid density, if the 'rho_liq'
+        field passed in the pure-component json is a float, constant density
+        will be assumed. If 'rho_liq' is passed as a list, then liquid mass
+        density will be assumed to be correlated as:
+
+            log(rho_liq) = log(rho_zero) + (beta_zero + gamma*temp) * (temp - temp_zero)
+
+            where 'rho_zero' is a known value of liquid mass density measured
+            at a reference temperature 'temp_zero'.
+
+            Coefficient of thermal expansion is assumed to be linearly
+            dependent with temperature with parameters beta_zero and gamma.
+
+            The order of the parameters is assumed to be:
+                [beta_zero, gamma, rho_zero, temp_zero]
+
+        Parameters
+        ----------
+        phase : str, optional
+            one of 'liquid' and 'vapor'. The default is 'liquid'.
+        temp : float or array-like, optional
+            temperature in K. The default is None.
+
+        Returns
+        -------
+        rhoMass : float or array-like
+            mass density (kg/m**3).
+        rhoMole : float or array-like
+            mole density (kmol/m**3).
+
+        """
+
+        if temp is None:
+            temp = self.temp
+
         if phase == 'liquid':
-            rhoMass = self.rho_liq  # TODO: T-dependent rho
+            if self.rho_liq.ndim == 2:
+                beta_zero, gamma, rho_zero, temp_zero = self.rho_liq.T
+                if isinstance(temp, (float, )):
+                    log_rho = np.log(rho_zero) - (beta_zero + gamma*temp) * \
+                        (temp - temp_zero)
+                else:
+                    log_rho = np.log(rho_zero) - (beta_zero + np.outer(gamma, temp)) * \
+                        (temp - temp_zero)
+
+                    log_rho = log_rho.T
+
+                rhoMass = np.exp(log_rho)
+            else:
+                rhoMass = self.rho_liq
+
         elif phase == 'solid':
             rhoMass = self.rho_solid
 
