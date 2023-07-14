@@ -122,6 +122,13 @@ class ThermoPhysicalManager:
             self.b_unifac = b_mat
             self.c_unifac = c_mat
 
+    def parse_composition(self, di_comp):
+        out = np.zeros(len(self.name_species))
+        for key, val in di_comp.items():
+            out[self.name_species.index(key)] = val
+
+        return out
+
     def selectProperties(self, names):
         mapping = dict((key, ind)
                        for ind, key in enumerate(self.compound_names))
@@ -288,7 +295,8 @@ class ThermoPhysicalManager:
         will be assumed. If 'rho_liq' is passed as a list, then liquid mass
         density will be assumed to be correlated as:
 
-            log(rho_liq) = log(rho_zero) + (beta_zero + gamma*temp) * (temp - temp_zero)
+            log(rho_liq) = log(rho_zero) + beta_zero * (temp - temp_zero) +
+                gamma/2 * (temp**2 - temp_zero**2)
 
             where 'rho_zero' is a known value of liquid mass density measured
             at a reference temperature 'temp_zero'.

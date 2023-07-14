@@ -130,6 +130,9 @@ class LiquidPhase(ThermoPhysicalManager):
                                  "provided")
 
         if mass_frac is not None:
+            if isinstance(mass_frac, dict):
+                mass_frac = self.parse_composition(mass_frac)
+
             self.mass_frac = np.array(mass_frac)
             self.mass_conc = mass_conc
 
@@ -158,6 +161,9 @@ class LiquidPhase(ThermoPhysicalManager):
             self.mass_frac = mass_frac
             self.mass_conc = mass_conc
 
+            if isinstance(mole_frac, dict):
+                mole_frac = self.parse_composition(mole_frac)
+
             self.mole_frac = np.array(mole_frac)
             self.mole_conc = mole_conc
 
@@ -180,6 +186,9 @@ class LiquidPhase(ThermoPhysicalManager):
             self.__calcComposition()
 
         elif mass_conc is not None:
+            if isinstance(mass_conc, dict):
+                mass_conc = self.parse_composition(mass_conc)
+
             self.mass_conc = np.array(mass_conc)
             self.mole_frac = mole_frac
 
@@ -189,6 +198,9 @@ class LiquidPhase(ThermoPhysicalManager):
             self.__calcComposition()
 
         elif mole_conc is not None:
+            if isinstance(mole_conc, dict):
+                mole_conc = self.parse_composition(mole_conc)
+
             self.mole_conc = np.array(mole_conc)
             self.mole_frac = mole_frac
 
@@ -870,6 +882,9 @@ class SolidPhase(ThermoPhysicalManager):
         self.pres = pres
 
         self.mass = mass
+
+        if isinstance(mass_frac, dict):
+            mass_frac = self.parse_composition(mass_frac)
 
         mass_frac = np.atleast_1d(mass_frac)
         mass_frac[mass_frac == 0] = eps
