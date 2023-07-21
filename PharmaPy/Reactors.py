@@ -485,14 +485,19 @@ class _BaseReactor:
                                                    verbose=False,
                                                    eval_sens=True, **run_args)
 
+            mask_data = np.argwhere(np.in1d(t_prof, t_vals)).ravel()
+
             if reord_sens:
-                sens = reorder_sens(sens)
+                sens = reorder_sens(sens, separate_sens=True)
+                sens = [ar[mask_data] for ar in sens]
+
+                sens = np.vstack(sens)
             else:
                 sens = np.stack(sens)
 
             c_prof = states[:, :self.Kinetics.num_species]
 
-            return c_prof, sens
+            return c_prof[mask_data], sens
 
         else:
             t_prof, states = self.solve_unit(time_grid=t_vals,
@@ -783,7 +788,8 @@ class BatchReactor(_BaseReactor):
 
         if time_grid is not None:
             final_time = time_grid[-1] + self.elapsed_time
-            self.elapsed_time = time_grid[0]
+            # self.elapsed_time = time_grid[0]  # TODO: I think this is wrong
+            # self.elapsed_time = None
 
         # Initial states
         conc_init = self.Liquid_1.mole_conc[self.mask_species]
