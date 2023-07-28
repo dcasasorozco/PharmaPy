@@ -964,16 +964,17 @@ class DynamicCollector:
             self.outputs = self.CrystInst.outputs
             self.result = self.CrystInst.result
 
-    def plot_profiles(self, time_div=1, pick_comp=None, fig_kw=None):
-        if fig_kw is None:
-            fig_kw = {}
+    def plot_profiles(self, time_div=1, pick_comp=None, **fig_kw):
+        if pick_comp is None:
+            pick_comp = range(self.num_species)
 
         if self.is_cryst:
             fig, axes, ax_right = self.CrystInst.plot_profiles(
                 time_div=time_div, **fig_kw)
         else:
+            ylab = ('w_j', 'm', 'T')
             states_plot = [('mass_frac', pick_comp), 'mass', 'temp']
-            fig, axes = plot_function(self, states_plot, nrows=2,
+            fig, axes = plot_function(self, states_plot, nrows=2, ylabels=ylab,
                                       fig_map=(0, 1, 1), **fig_kw)
 
         return fig, axes

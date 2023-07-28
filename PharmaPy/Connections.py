@@ -356,11 +356,11 @@ class Connection:
             matter = matter[edge]
             outputs = outputs[edge]
 
+        self.Matter = matter
+
         self.FeedConnection(matter, outputs)
         self.ConvertUnits(matter)
         self.PassPhases(matter)
-
-        # self.Matter = matter
 
     def FeedConnection(self, matter, outputs):
         self.num_species = matter.num_species
@@ -368,7 +368,8 @@ class Connection:
 
         time_prof = self.source_uo.result.time
 
-        if self.source_uo.is_continuous:
+        if 'Stream' in matter.__class__.__name__:  # TODO This needs to be tested!
+        # if self.source_uo.is_continuous:
             matter.time_upstream = time_prof
         else:
             matter.time_upstream = time_prof[-1]
@@ -377,7 +378,10 @@ class Connection:
         mode_source = self.source_uo.oper_mode
         mode_dest = self.destination_uo.oper_mode
 
-        flow_flag = (mode_source == 'Continuous' and mode_dest != 'Batch')
+        # flow_flag = (mode_source == 'Continuous' and mode_dest != 'Batch')
+        flow_flag = ('Stream' in self.Matter.__class__.__name__
+                     and mode_dest != 'Batch')
+
         btf_flag = self.source_uo.__class__.__name__ == 'BatchToFlowConnector'
 
         if flow_flag:

@@ -206,7 +206,7 @@ class NameAnalyzer:
 
                 if target != source:
                     y_j = dict_in[source]
-                    
+
                     if 'distrib' in target or 'solid_conc' in target:
                         converted_state = self.__convert_distrib(
                             source, target, y_j, matter_transf)
@@ -217,7 +217,7 @@ class NameAnalyzer:
 
                     elif 'flow' in target:
                         comp = self.conv_types['composition']
-                        
+
                         converted_state = self.__convertFlow(
                             source, target, y_j, matter_transf,
                             dict_in[comp[0]], comp[0])
@@ -262,7 +262,7 @@ class NameAnalyzer:
 
         elif 'mass_conc' in up and 'frac' in down:
             method_name = 'mass_conc_to_frac'
-            fun_kwargs = {'conc': composition}
+            fun_kwargs = {'conc': composition, 'basis': down.split('_')[0]}
 
             if 'mole' in down:
                 fun_kwargs['basis'] = 'mole'
