@@ -457,7 +457,19 @@ class SimulationExec:
 
         return out
 
-    def get_raw_inlets(self, uo, basis='mass'):
+    def find_nearest_timegrid(self, uo_name):
+        node = uo_name
+        while True:
+            dest = self.graph[node]
+            for name in dest:
+                uo_obj = getattr(self, name)
+                timegrid = uo_obj.result.time
+                if len(timegrid) > 1:
+                    return timegrid
+
+                node = name
+
+    def get_raw_inlets(self, uo, uo_name, basis='mass'):
         if hasattr(uo, 'Inlet'):
             if isinstance(uo.Inlet, dict):
                 inlets = uo.Inlet
@@ -498,10 +510,22 @@ class SimulationExec:
                 if uo.oper_mode == 'Batch':
                     if basis == 'mass':
                         total = stream.mass
+                        di[name_stream] = {'mass': total}
+
+                        fields += ['mass_frac']
                     elif basis == 'mole':
                         total = stream.moles
+                        di[name_stream] = {'moles': total}
+
+                        fields += ['mole_frac']
+
                 elif inlet.DynamicInlet is None:
-                    time = uo.result.time[-1] - uo.result.time[0]
+                    if len(uo.result.time) == 1:
+                        timegrid = self.find_nearest_timegrid(uo_name)
+                    else:
+                        timegrid = uo.result.time
+
+                    time = timegrid[-1] - timegrid[0]
                     if basis == 'mass':
                         flow = inlet.mass_flow
                         total = flow*time
@@ -523,6 +547,8 @@ class SimulationExec:
                     if basis == 'mass':
                         if 'mass_flow' in inputs:
                             flow = inputs['mass_flow']
+                        elif 'vol_flow' in inputs:
+                            flow = inputs['vol_flow'] * dens
                         else:
                             flow = inputs['mole_flow'] * inlet.mw_av / 1000
 
@@ -535,6 +561,8 @@ class SimulationExec:
                     elif basis == 'mole':
                         if 'mole_flow' in inputs:
                             flow = inputs['mole_flow']
+                        elif 'vol_flow' in inputs:
+                            flow = inputs['vol_flow'] * dens / inlet.mw_av * 100
                         else:
                             flow = inputs['mass_flow'] / inlet.mw_av * 1000
 
@@ -583,7 +611,7 @@ class SimulationExec:
         for name, uo in self.uos_instances.items():
             out[name] = {}
 
-            raw_inlets = self.get_raw_inlets(uo, basis=basis)
+            raw_inlets = self.get_raw_inlets(uo, name, basis=basis)
             raw_holdup = self.get_holdup(uo, basis=basis)
 
             for second in raw_inlets:  # flatten multidimensional states
@@ -626,7 +654,7 @@ class SimulationExec:
                     raw_df = pd.DataFrame(np.column_stack((mass, mass_comp)),
                                           columns=cols, index=raw_df.index)
 
-                elif basis == 'moles':
+                elif basis == 'mole':
                     mole_frac = raw_df.filter(regex='mole_frac').values
                     moles = raw_df['moles'].values[:, np.newaxis]
                     moles_comp = mole_frac * moles

@@ -6,6 +6,10 @@ Created on Thu Sep 16 15:06:16 2021
 """
 
 
+from PharmaPy.Connections import interpolate_inputs
+import numpy as np
+
+
 def analyze_controls(di):
 
     controls = {}
@@ -47,8 +51,23 @@ class DynamicInput:
         # Attributes assigned from UO instance
         self.parent_instance = None
 
-    def add_variable(self, variable_name, function, args_control=None):
-        self.controls[variable_name] = function
+    def add_variable(self, variable_name=None, function=None, data=None,
+                     args_control=None):
+
+        if function is not None:
+            self.controls[variable_name] = function
+        elif data is not None:
+            if not isinstance(data, np.ndarray):
+                raise TypeError("Passed data must be a numpy array")
+            elif data.ndim != 2:
+                raise ValueError("Passed data must be two dimensional")
+
+            self.controls[variable_name] = data
+
+        else:
+            raise ValueError("Please provide a callable using the 'function' "
+                             "argument or data using the 'data' argument.")
+
         if args_control is None:
             args_control = ()
 
@@ -57,8 +76,13 @@ class DynamicInput:
     def evaluate_inputs(self, time):
         controls_out = {}
 
-        for key, fun in self.controls.items():
-            args = self.args_control[key]
-            controls_out[key] = fun(time, *args)
+        for key, obj in self.controls.items():
+            if callable(obj):
+                args = self.args_control[key]
+                controls_out[key] = obj(time, *args)
+
+            else:
+                t_inlet, y_inlet = obj.T
+                controls_out[key] = interpolate_inputs(time, t_inlet, y_inlet)
 
         return controls_out
