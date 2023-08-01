@@ -159,7 +159,7 @@ class ThermoPhysicalManager:
             cp_cts = np.atleast_2d(self.cp_vapor)
 
         num_sp = len(cp_cts)
-        ind_poly = np.arange(cp_cts.shape[1])
+        ind_poly = np.arange(cp_cts.shape[1], dtype=np.int64)
 
         cpMole = np.zeros((num_temp, num_sp))
         for ind, val in enumerate(temp):
@@ -216,7 +216,7 @@ class ThermoPhysicalManager:
 
         cp_cts = cp_cts[idx]
 
-        ind_poly = np.arange(cp_cts.shape[1])
+        ind_poly = np.arange(cp_cts.shape[1], dtype=np.int64)
         exp = ind_poly + 1
 
         integral = []

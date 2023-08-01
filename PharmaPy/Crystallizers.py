@@ -1991,7 +1991,7 @@ class MSMPR(_BaseCryst):
                 self.Liquid_1.updatePhase(vol=vol_liq,
                                           mass_conc=dp['mass_conc'][-1])
                 self.Liquid_1.temp = dp['temp'][-1]
-                self.Solid_1.updatePhase(distrib=distrib_tilde)
+                self.Solidj_1.updatePhase(distrib=distrib_tilde)
 
                 self.Slurry = Slurry()
 
